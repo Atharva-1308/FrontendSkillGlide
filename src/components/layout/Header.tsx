@@ -1,0 +1,388 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, X, User, Settings, LogOut, Sun, Moon, Zap, Bell, Home } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import { NotificationsPanel } from '../notifications/NotificationsPanel';
+
+interface HeaderProps {
+  onNavigate?: (view: 'home' | 'jobs' | 'resume' | 'profile' | 'dashboard' | 'post-job' | 'candidates') => void;
+  currentView?: string;
+  onGetStarted?: () => void;
+  onSignIn?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ 
+  onNavigate, 
+  currentView, 
+  onGetStarted, 
+  onSignIn 
+}) => {
+  const { user, logout, isAuthenticated, isEmployer, isJobSeeker } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Close mobile menu when view changes
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [currentView]);
+
+  const getNavigation = () => {
+    if (!isAuthenticated) {
+      return [
+        { name: 'Home', href: '#home', view: 'home' as const },
+        { name: 'Find Jobs', href: '#jobs', view: 'jobs' as const },
+        { name: 'Resume Builder', href: '#resume', view: 'resume' as const },
+        { name: 'Companies', href: '#companies', view: 'jobs' as const },
+        { name: 'Post Jobs', href: '#post-jobs', view: 'post-job' as const },
+      ];
+    }
+
+    if (isEmployer) {
+      return [
+        { name: 'Dashboard', href: '#dashboard', view: 'dashboard' as const },
+        { name: 'Post Job', href: '#post-job', view: 'post-job' as const },
+        { name: 'Find Candidates', href: '#candidates', view: 'candidates' as const },
+        { name: 'Profile', href: '#profile', view: 'profile' as const },
+      ];
+    } else if (isJobSeeker) {
+      return [
+        { name: 'Find Jobs', href: '#jobs', view: 'jobs' as const },
+        { name: 'Resume Builder', href: '#resume', view: 'resume' as const },
+        { name: 'Companies', href: '#companies', view: 'jobs' as const },
+        { name: 'Career Tips', href: '#tips', view: 'jobs' as const },
+      ];
+    }
+
+    return [];
+  };
+
+  const navigation = getNavigation();
+
+  const handleNavigation = (view: 'home' | 'jobs' | 'resume' | 'profile' | 'dashboard' | 'post-job' | 'candidates') => {
+    // If user is not authenticated and tries to access post-job, show auth modal
+    if (!isAuthenticated && view === 'post-job') {
+      onSignIn?.();
+      return;
+    }
+    
+    onNavigate?.(view);
+    setIsMenuOpen(false);
+    setIsProfileOpen(false);
+  };
+
+  const handleLogout = () => {
+    setIsProfileOpen(false);
+    logout();
+  };
+
+  // Mock notification count - in real app this would come from context/API
+  const unreadNotificationCount = isAuthenticated ? 3 : 0;
+
+  return (
+    <>
+      <header className={`sticky top-0 z-50 transition-all duration-300 border-b ${
+        theme === 'light'
+          ? 'bg-white/95 backdrop-blur-lg border-gray-200/50 soft-shadow'
+          : 'bg-gray-900/95 backdrop-blur-lg border-gray-700/50'
+      }`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <div className="flex items-center">
+              <button 
+                onClick={() => handleNavigation('home')}
+                className="flex-shrink-0 flex items-center space-x-2 hover:opacity-80 transition-all duration-200 hover:scale-105"
+              >
+                <div className={`w-8 h-8 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                  theme === 'dark-neon' ? 'glow' : 'soft-shadow'
+                }`}>
+                  <Zap className="w-5 h-5 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-500 bg-clip-text text-transparent">
+                  SkillGlide
+                </h1>
+              </button>
+            </div>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex space-x-1">
+              {navigation.map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => handleNavigation(item.view)}
+                  className={`text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-cyan-400 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                    currentView === item.view 
+                      ? `text-blue-600 dark:text-cyan-400 ${
+                          theme === 'light' ? 'bg-blue-50' : 'bg-cyan-900/20'
+                        }` 
+                      : ''
+                  }`}
+                >
+                  {item.name}
+                </button>
+              ))}
+            </nav>
+
+            {/* Right side buttons */}
+            <div className="flex items-center space-x-3">
+              {/* Notifications */}
+              {isAuthenticated && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="relative hover-lift"
+                  onClick={() => setIsNotificationsOpen(true)}
+                  icon={<Bell className="w-4 h-4" />}
+                >
+                  {unreadNotificationCount > 0 && (
+                    <Badge 
+                      variant="error" 
+                      size="sm" 
+                      className={`absolute -top-1 -right-1 min-w-[20px] h-5 flex items-center justify-center text-xs font-bold animate-pulse ${
+                        theme === 'dark-neon' ? 'glow' : ''
+                      }`}
+                    >
+                      {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                    </Badge>
+                  )}
+                </Button>
+              )}
+
+              {/* Theme Toggle Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+                className={`theme-toggle relative overflow-hidden transition-all duration-300 animate-theme-transition ${
+                  isDark 
+                    ? 'text-cyan-400 hover:bg-cyan-900/20 hover:text-cyan-300 neon-glow' 
+                    : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 gentle-glow'
+                }`}
+                icon={
+                  <div className="relative">
+                    {isDark ? (
+                      <Moon className={`w-4 h-4 transition-all duration-300 ${
+                        theme === 'dark-neon' ? 'animate-pulse glow-text' : ''
+                      }`} />
+                    ) : (
+                      <Sun className={`w-4 h-4 transition-all duration-300 ${
+                        theme === 'light' ? 'animate-bounce-gentle' : ''
+                      }`} />
+                    )}
+                  </div>
+                }
+                title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Neon Theme'}
+              />
+
+              {isAuthenticated ? (
+                /* User Profile Dropdown */
+                <div className="relative" ref={profileRef}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                    className={`flex items-center space-x-2 transition-all duration-200 ${
+                      theme === 'light' 
+                        ? 'hover:bg-gray-100' 
+                        : 'hover:bg-gray-800'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      theme === 'dark-neon' ? 'glow' : 'soft-shadow'
+                    }`}>
+                      <span className="text-white text-sm font-medium">
+                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      </span>
+                    </div>
+                    <span className="hidden sm:block text-sm font-medium">{user?.name || 'User'}</span>
+                  </Button>
+                  
+                  {isProfileOpen && (
+                    <div className={`absolute right-0 mt-2 w-56 rounded-xl shadow-xl border py-2 z-50 animate-scale-in glass ${
+                      theme === 'light'
+                        ? 'bg-white border-gray-200'
+                        : 'bg-gray-800 border-gray-700'
+                    }`}>
+                      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.name || 'User'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email || 'user@example.com'}</p>
+                        <div className="mt-1">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            user?.role === 'employer' 
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                          }`}>
+                            {user?.role === 'employer' ? 'Employer' : 'Job Seeker'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <button 
+                        onClick={() => handleNavigation('profile')}
+                        className={`w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 flex items-center space-x-3 transition-colors ${
+                          theme === 'light' 
+                            ? 'hover:bg-gray-50' 
+                            : 'hover:bg-gray-700'
+                        }`}
+                      >
+                        <User className="w-4 h-4" />
+                        <span>My Profile</span>
+                      </button>
+                      
+                      <button className={`w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 flex items-center space-x-3 transition-colors ${
+                        theme === 'light' 
+                          ? 'hover:bg-gray-50' 
+                          : 'hover:bg-gray-700'
+                      }`}>
+                        <Settings className="w-4 h-4" />
+                        <span>Settings</span>
+                      </button>
+                      
+                      <div className="border-t border-gray-200 dark:border-gray-700 mt-2 pt-2">
+                        <button
+                          onClick={handleLogout}
+                          className={`w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 flex items-center space-x-3 transition-colors ${
+                            theme === 'light' 
+                              ? 'hover:bg-red-50' 
+                              : 'hover:bg-red-900/20'
+                          }`}
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>Sign out</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Login/Register Buttons */
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="hidden sm:flex hover-lift"
+                    onClick={onSignIn}
+                  >
+                    Log In
+                  </Button>
+                  <Button 
+                    variant="primary" 
+                    size="sm"
+                    onClick={onGetStarted}
+                    className="hover-lift shadow-lg"
+                  >
+                    Get Started
+                  </Button>
+                </div>
+              )}
+
+              {/* Mobile menu button */}
+              <div className="md:hidden">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  icon={isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                  className="hover-lift"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className={`md:hidden border-t backdrop-blur-lg animate-slide-up ${
+            theme === 'light'
+              ? 'border-gray-200 bg-white/95'
+              : 'border-gray-700 bg-gray-900/95'
+          }`}>
+            <div className="px-4 pt-2 pb-3 space-y-1">
+              {navigation.map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => handleNavigation(item.view)}
+                  className={`block w-full text-left px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-cyan-400 rounded-lg transition-all duration-200 ${
+                    currentView === item.view 
+                      ? `text-blue-600 dark:text-cyan-400 ${
+                          theme === 'light' ? 'bg-blue-50' : 'bg-cyan-900/20'
+                        }` 
+                      : `${
+                          theme === 'light' 
+                            ? 'hover:bg-gray-100' 
+                            : 'hover:bg-gray-800'
+                        }`
+                  }`}
+                >
+                  {item.name}
+                </button>
+              ))}
+              
+              {/* Mobile Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className={`block w-full text-left px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-cyan-400 rounded-lg transition-all duration-200 flex items-center space-x-3 ${
+                  theme === 'light' 
+                    ? 'hover:bg-gray-100' 
+                    : 'hover:bg-gray-800'
+                }`}
+              >
+                {isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                <span>{isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}</span>
+              </button>
+              
+              {!isAuthenticated && (
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    fullWidth
+                    onClick={onSignIn}
+                    className="hover-lift"
+                  >
+                    Log In
+                  </Button>
+                  <Button 
+                    variant="primary" 
+                    size="sm" 
+                    fullWidth
+                    onClick={onGetStarted}
+                    className="hover-lift shadow-lg"
+                  >
+                    Get Started
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Notifications Panel */}
+      <NotificationsPanel 
+        isOpen={isNotificationsOpen} 
+        onClose={() => setIsNotificationsOpen(false)} 
+      />
+    </>
+  );
+};
