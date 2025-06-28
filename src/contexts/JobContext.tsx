@@ -1,15 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Job, JobFilters } from '../types';
+import { jobService, type JobResponse } from '../services/jobService';
+import { useApi } from '../hooks/useApi';
+import type { JobFilters } from '../types';
 
 interface JobContextValue {
-  jobs: Job[];
-  filteredJobs: Job[];
+  jobs: JobResponse[];
+  filteredJobs: JobResponse[];
   filters: JobFilters;
   updateFilters: (filters: Partial<JobFilters>) => void;
   clearFilters: () => void;
   searchJobs: (query: string) => void;
   loading: boolean;
+  error: string | null;
   totalJobs: number;
+  refetchJobs: () => Promise<void>;
 }
 
 const JobContext = createContext<JobContextValue | undefined>(undefined);
@@ -26,106 +30,79 @@ interface JobProviderProps {
   children: React.ReactNode;
 }
 
-// Mock job data
-const mockJobs: Job[] = [
-  {
-    id: '1',
-    title: 'Senior Frontend Developer',
-    company: 'TechCorp',
-    location: 'Bangalore, India',
-    type: 'full-time',
-    workMode: 'hybrid',
-    experience: '3-5',
-    salary: { min: 80000, max: 120000, currency: 'INR', period: 'month' },
-    description: 'We are looking for a skilled Frontend Developer to join our team...',
-    requirements: ['React', 'TypeScript', 'Next.js', '3+ years experience'],
-    skills: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS'],
-    postedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    employerId: 'emp1',
-    isActive: true,
-    applicationsCount: 15,
-  },
-  {
-    id: '2',
-    title: 'Product Manager',
-    company: 'StartupXYZ',
-    location: 'Mumbai, India',
-    type: 'full-time',
-    workMode: 'remote',
-    experience: '5+',
-    salary: { min: 150000, max: 200000, currency: 'INR', period: 'month' },
-    description: 'Lead product strategy and development for our core platform...',
-    requirements: ['Product Management', 'Agile', 'Analytics', '5+ years experience'],
-    skills: ['Product Strategy', 'Analytics', 'User Research', 'Agile'],
-    postedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    employerId: 'emp2',
-    isActive: true,
-    applicationsCount: 8,
-  },
-  {
-    id: '3',
-    title: 'Marketing Intern',
-    company: 'GrowthCo',
-    location: 'Delhi, India',
-    type: 'internship',
-    workMode: 'onsite',
-    experience: 'fresher',
-    salary: { min: 15000, max: 25000, currency: 'INR', period: 'month' },
-    description: 'Join our marketing team and learn digital marketing strategies...',
-    requirements: ['Marketing basics', 'Social Media', 'Content Writing'],
-    skills: ['Digital Marketing', 'Content Creation', 'Social Media'],
-    postedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    employerId: 'emp3',
-    isActive: true,
-    applicationsCount: 25,
-  },
-];
-
 export const JobProvider: React.FC<JobProviderProps> = ({ children }) => {
-  const [jobs] = useState<Job[]>(mockJobs);
-  const [filteredJobs, setFilteredJobs] = useState<Job[]>(mockJobs);
   const [filters, setFilters] = useState<JobFilters>({});
-  const [loading, setLoading] = useState(false);
+  const [filteredJobs, setFilteredJobs] = useState<JobResponse[]>([]);
 
-  const applyFilters = (currentJobs: Job[], currentFilters: JobFilters) => {
-    let filtered = [...currentJobs];
+  const {
+    data: jobs = [],
+    loading,
+    error,
+    refetch: refetchJobs,
+  } = useApi(() => jobService.getJobs(filters), {
+    immediate: true,
+  });
 
-    if (currentFilters.search) {
-      const searchLower = currentFilters.search.toLowerCase();
+  // Apply filters whenever jobs or filters change
+  useEffect(() => {
+    if (!jobs) return;
+
+    let filtered = [...jobs];
+
+    // Apply search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
       filtered = filtered.filter(job =>
         job.title.toLowerCase().includes(searchLower) ||
-        job.company.toLowerCase().includes(searchLower) ||
+        job.description.toLowerCase().includes(searchLower) ||
         job.location.toLowerCase().includes(searchLower) ||
         job.skills.some(skill => skill.toLowerCase().includes(searchLower))
       );
     }
 
-    if (currentFilters.location) {
+    // Apply location filter
+    if (filters.location) {
       filtered = filtered.filter(job =>
-        job.location.toLowerCase().includes(currentFilters.location!.toLowerCase())
+        job.location.toLowerCase().includes(filters.location!.toLowerCase())
       );
     }
 
-    if (currentFilters.jobType && currentFilters.jobType.length > 0) {
-      filtered = filtered.filter(job => currentFilters.jobType!.includes(job.type));
+    // Apply job type filter
+    if (filters.jobType && filters.jobType.length > 0) {
+      filtered = filtered.filter(job => filters.jobType!.includes(job.job_type as any));
     }
 
-    if (currentFilters.workMode && currentFilters.workMode.length > 0) {
-      filtered = filtered.filter(job => currentFilters.workMode!.includes(job.workMode));
+    // Apply work mode filter
+    if (filters.workMode && filters.workMode.length > 0) {
+      filtered = filtered.filter(job => filters.workMode!.includes(job.work_mode as any));
     }
 
-    if (currentFilters.experience && currentFilters.experience.length > 0) {
-      filtered = filtered.filter(job => currentFilters.experience!.includes(job.experience));
+    // Apply experience filter
+    if (filters.experience && filters.experience.length > 0) {
+      filtered = filtered.filter(job => filters.experience!.includes(job.experience_level as any));
     }
 
-    if (currentFilters.postedWithin) {
-      const cutoffDate = new Date(Date.now() - currentFilters.postedWithin * 24 * 60 * 60 * 1000);
-      filtered = filtered.filter(job => job.postedAt >= cutoffDate);
+    // Apply salary filter
+    if (filters.salaryRange) {
+      filtered = filtered.filter(job => {
+        if (!job.salary_min || !job.salary_max) return true;
+        return (
+          job.salary_min >= (filters.salaryRange!.min || 0) &&
+          job.salary_max <= (filters.salaryRange!.max || Infinity)
+        );
+      });
     }
 
-    if (currentFilters.skills && currentFilters.skills.length > 0) {
+    // Apply posted within filter
+    if (filters.postedWithin) {
+      const cutoffDate = new Date(Date.now() - filters.postedWithin * 24 * 60 * 60 * 1000);
+      filtered = filtered.filter(job => new Date(job.created_at) >= cutoffDate);
+    }
+
+    // Apply skills filter
+    if (filters.skills && filters.skills.length > 0) {
       filtered = filtered.filter(job =>
-        currentFilters.skills!.some(skill =>
+        filters.skills!.some(skill =>
           job.skills.some(jobSkill => 
             jobSkill.toLowerCase().includes(skill.toLowerCase())
           )
@@ -133,18 +110,7 @@ export const JobProvider: React.FC<JobProviderProps> = ({ children }) => {
       );
     }
 
-    return filtered;
-  };
-
-  useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      const filtered = applyFilters(jobs, filters);
-      setFilteredJobs(filtered);
-      setLoading(false);
-    }, 300);
-
-    return () => clearTimeout(timer);
+    setFilteredJobs(filtered);
   }, [jobs, filters]);
 
   const updateFilters = (newFilters: Partial<JobFilters>) => {
@@ -162,14 +128,16 @@ export const JobProvider: React.FC<JobProviderProps> = ({ children }) => {
   return (
     <JobContext.Provider
       value={{
-        jobs,
+        jobs: jobs || [],
         filteredJobs,
         filters,
         updateFilters,
         clearFilters,
         searchJobs,
         loading,
-        totalJobs: jobs.length,
+        error,
+        totalJobs: jobs?.length || 0,
+        refetchJobs,
       }}
     >
       {children}

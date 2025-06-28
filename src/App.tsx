@@ -9,6 +9,9 @@ import { ResumeBuilder } from './components/resume/ResumeBuilder';
 import { EmployerDashboard } from './components/employer/EmployerDashboard';
 import { JobPostingBuilder } from './components/employer/JobPostingBuilder';
 import { AuthModal } from './components/auth/AuthModal';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { LoadingSpinner } from './components/common/LoadingSpinner';
+import { ToastContainer, useToast } from './components/common/Toast';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { JobProvider } from './contexts/JobContext';
@@ -20,8 +23,9 @@ const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<'home' | 'jobs' | 'resume' | 'profile' | 'create-profile' | 'dashboard' | 'post-job' | 'candidates'>('home');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
-  const { isAuthenticated, isEmployer, isJobSeeker, user } = useAuth();
+  const { isAuthenticated, isEmployer, isJobSeeker, user, loading } = useAuth();
   const { theme } = useTheme();
+  const { toasts, removeToast } = useToast();
 
   // Reset to home page when user logs out
   useEffect(() => {
@@ -70,6 +74,21 @@ const AppContent: React.FC = () => {
   const handleProfileCreationBack = () => {
     setCurrentView('home');
   };
+
+  // Show loading spinner during initial auth check
+  if (loading) {
+    return (
+      <div className={`min-h-screen theme-transition ${
+        theme === 'light' 
+          ? 'bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 light bg-light-pattern' 
+          : 'bg-gradient-to-br from-gray-900 via-gray-900 to-blue-900 dark-neon bg-dark-pattern'
+      }`}>
+        <div className="flex items-center justify-center min-h-screen">
+          <LoadingSpinner size="lg" text="Loading SkillGlide..." />
+        </div>
+      </div>
+    );
+  }
 
   const renderContent = () => {
     switch (currentView) {
@@ -161,19 +180,24 @@ const AppContent: React.FC = () => {
         defaultMode={authModalMode}
         onGetStarted={handleGetStarted}
       />
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 };
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <JobProvider>
-          <AppContent />
-        </JobProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <JobProvider>
+            <AppContent />
+          </JobProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

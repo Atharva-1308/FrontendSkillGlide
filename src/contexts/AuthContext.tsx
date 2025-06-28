@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { User, JobSeeker, Employer } from '../types';
+import { authService, type LoginRequest, type RegisterRequest } from '../services/authService';
+import { userService } from '../services/userService';
+import type { User } from '../types';
 
 interface AuthContextValue {
   user: User | null;
-  login: (email: string, password: string, role: 'jobseeker' | 'employer') => Promise<void>;
-  register: (userData: Partial<User>) => Promise<void>;
+  login: (credentials: LoginRequest) => Promise<void>;
+  register: (userData: RegisterRequest) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   loading: boolean;
   isAuthenticated: boolean;
   isJobSeeker: boolean;
@@ -26,133 +29,79 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-// Dummy accounts for testing
-const dummyAccounts = {
-  // Job Seeker Account
-  'john.doe@skillglide.com': {
-    id: 'js_001',
-    email: 'john.doe@skillglide.com',
-    name: 'John Doe',
-    role: 'jobseeker' as const,
-    phone: '+91 98765 43210',
-    location: 'Bangalore, India',
-    experience: 3,
-    skills: ['React', 'TypeScript', 'Node.js', 'Python', 'AWS'],
-    createdAt: new Date('2024-01-15'),
-    password: 'password123'
-  },
-  // Employer Account
-  'hr@techcorp.com': {
-    id: 'emp_001',
-    email: 'hr@techcorp.com',
-    name: 'Sarah Wilson',
-    role: 'employer' as const,
-    company: 'TechCorp Solutions',
-    companyLogo: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-    industry: 'Technology',
-    companySize: '201-500',
-    website: 'https://techcorp.com',
-    createdAt: new Date('2024-01-10'),
-    password: 'employer123'
-  }
-};
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Initialize auth state
   useEffect(() => {
-    // Simulate loading user from storage or API
-    try {
-      const savedUser = localStorage.getItem('skillglide-user');
-      if (savedUser) {
-        const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
+    const initializeAuth = async () => {
+      try {
+        const token = authService.getAccessToken();
+        if (token) {
+          // Try to get fresh user data from API
+          const userData = await userService.getCurrentUser();
+          setUser(userData);
+        } else {
+          // Fallback to stored user data
+          const storedUser = authService.getCurrentUser();
+          if (storedUser) {
+            setUser(storedUser);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
+        // Clear invalid tokens
+        authService.logout();
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading user from localStorage:', error);
-      localStorage.removeItem('skillglide-user');
-    }
-    setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
-  const login = async (email: string, password: string, role: 'jobseeker' | 'employer') => {
+  const login = async (credentials: LoginRequest) => {
     setLoading(true);
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check if it's a dummy account
-      const dummyAccount = dummyAccounts[email as keyof typeof dummyAccounts];
-      
-      if (dummyAccount && dummyAccount.password === password && dummyAccount.role === role) {
-        // Use dummy account data
-        const { password: _, ...userWithoutPassword } = dummyAccount;
-        setUser(userWithoutPassword);
-        localStorage.setItem('skillglide-user', JSON.stringify(userWithoutPassword));
-      } else {
-        // Create mock user for other emails
-        const mockUser: User = {
-          id: Math.random().toString(36).substr(2, 9),
-          email,
-          name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          role,
-          createdAt: new Date(),
-        };
-
-        setUser(mockUser);
-        localStorage.setItem('skillglide-user', JSON.stringify(mockUser));
-      }
+      const response = await authService.login(credentials);
+      setUser(response.user);
     } catch (error) {
       console.error('Login error:', error);
-      throw new Error('Login failed. Please check your credentials.');
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const register = async (userData: Partial<User>) => {
+  const register = async (userData: RegisterRequest) => {
     setLoading(true);
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        email: userData.email || '',
-        name: userData.name || '',
-        role: userData.role || 'jobseeker',
-        createdAt: new Date(),
-        ...userData,
-      };
-
-      setUser(newUser);
-      localStorage.setItem('skillglide-user', JSON.stringify(newUser));
+      const response = await authService.register(userData);
+      setUser(response.user);
     } catch (error) {
       console.error('Registration error:', error);
-      throw new Error('Registration failed. Please try again.');
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
   const logout = () => {
+    authService.logout();
+    setUser(null);
+    // Force page reload to clear any cached data
+    window.location.href = '/';
+  };
+
+  const refreshUser = async () => {
     try {
-      setUser(null);
-      localStorage.removeItem('skillglide-user');
-      
-      // Clear any other stored data
-      localStorage.removeItem('skillglide-theme');
-      
-      // Force redirect to home page by reloading the page
-      // This ensures the app state is completely reset
-      window.location.href = '/';
+      const userData = await userService.getCurrentUser();
+      setUser(userData);
     } catch (error) {
-      console.error('Logout error:', error);
-      // Fallback: just reload the page
-      window.location.reload();
+      console.error('Failed to refresh user data:', error);
+      // If refresh fails, user might need to re-authenticate
+      logout();
     }
   };
 
@@ -163,6 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         login,
         register,
         logout,
+        refreshUser,
         loading,
         isAuthenticated: !!user,
         isJobSeeker: user?.role === 'jobseeker',
