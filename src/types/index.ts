@@ -1,30 +1,26 @@
 // Core type definitions for the job portal
 export interface User {
-  id: string;
+  id: number;
   email: string;
   name: string;
-  role: 'jobseeker' | 'employer';
-  avatar?: string;
-  createdAt: Date;
-}
-
-export interface JobSeeker extends User {
-  role: 'jobseeker';
+  role: 'jobseeker' | 'employer' | 'admin';
+  avatar_url?: string;
   phone?: string;
   location?: string;
-  experience?: number;
-  skills?: string[];
-  resume?: Resume;
-  preferences?: JobPreferences;
-}
-
-export interface Employer extends User {
-  role: 'employer';
-  company: string;
-  companyLogo?: string;
-  industry?: string;
-  companySize?: string;
-  website?: string;
+  bio?: string;
+  experience_years?: number;
+  expected_salary_min?: number;
+  expected_salary_max?: number;
+  preferred_job_type?: string;
+  preferred_work_mode?: string;
+  linkedin_url?: string;
+  github_url?: string;
+  portfolio_url?: string;
+  is_active: boolean;
+  is_verified: boolean;
+  email_verified: boolean;
+  created_at: string;
+  last_login?: string;
 }
 
 export interface Job {
@@ -132,9 +128,9 @@ export interface JobFilters {
   search?: string;
   location?: string;
   radius?: number;
-  jobType?: JobType[];
-  workMode?: WorkMode[];
-  experience?: ExperienceLevel[];
+  jobType?: string[];
+  workMode?: string[];
+  experience?: string[];
   salaryRange?: SalaryRange;
   postedWithin?: number; // days
   skills?: string[];
@@ -147,12 +143,6 @@ export interface JobPreferences {
   preferredWorkMode: WorkMode[];
   expectedSalary: SalaryRange;
   skills: string[];
-}
-
-export interface AIResponse {
-  suggestions: string[];
-  content: string;
-  confidence: number;
 }
 
 export interface NotificationSettings {

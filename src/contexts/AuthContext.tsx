@@ -5,7 +5,7 @@ import type { User } from '../types';
 
 interface AuthContextValue {
   user: User | null;
-  login: (credentials: LoginRequest) => Promise<void>;
+  login: (email: string, password: string, role: 'jobseeker' | 'employer') => Promise<void>;
   register: (userData: RegisterRequest) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -61,10 +61,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (credentials: LoginRequest) => {
+  const login = async (email: string, password: string, role: 'jobseeker' | 'employer') => {
     setLoading(true);
     try {
-      const response = await authService.login(credentials);
+      const response = await authService.login(email, password, role);
       setUser(response.user);
     } catch (error) {
       console.error('Login error:', error);

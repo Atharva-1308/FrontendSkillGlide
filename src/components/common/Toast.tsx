@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, AlertCircle, XCircle, Info, X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { v4 as uuidv4 } from 'uuid';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -139,7 +140,7 @@ export const useToast = () => {
   }>>([]);
 
   const addToast = (toast: Omit<typeof toasts[0], 'id'>) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = uuidv4();
     setToasts(prev => [...prev, { ...toast, id }]);
   };
 
