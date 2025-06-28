@@ -27,8 +27,9 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = `
     inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200
     focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
-    transform hover:scale-[1.02] active:scale-[0.98]
+    transform hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden
     ${fullWidth ? 'w-full' : ''}
+    ${disabled || loading ? 'pointer-events-none' : ''}
   `;
 
   const sizeStyles = {
@@ -42,17 +43,17 @@ export const Button: React.FC<ButtonProps> = ({
     primary: `
       bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800
       text-white shadow-lg hover:shadow-xl focus:ring-blue-500
-      ${theme === 'dark-neon' ? 'from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 shadow-cyan-500/25 hover:shadow-cyan-500/40 neon-glow' : 'soft-shadow'}
+      ${theme === 'dark-neon' ? 'from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 shadow-cyan-500/25 hover:shadow-cyan-500/40' : ''}
     `,
     secondary: `
       bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700
       text-white shadow-lg hover:shadow-xl focus:ring-purple-500
-      ${theme === 'dark-neon' ? 'from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-purple-500/25' : 'soft-shadow'}
+      ${theme === 'dark-neon' ? 'from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-purple-500/25' : ''}
     `,
     outline: `
       border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white
       focus:ring-blue-500 shadow-sm hover:shadow-md
-      ${theme === 'dark-neon' ? 'border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black shadow-cyan-400/20 neon-border' : ''}
+      ${theme === 'dark-neon' ? 'border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black shadow-cyan-400/20' : ''}
     `,
     ghost: `
       text-gray-700 hover:bg-gray-100 focus:ring-gray-500
@@ -81,15 +82,19 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={disabled || loading}
       {...props}
     >
+      {/* Loading Spinner */}
       {loading && (
-        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+        </div>
       )}
       
-      {!loading && icon && iconPosition === 'left' && icon}
-      
-      {!loading && children}
-      
-      {!loading && icon && iconPosition === 'right' && icon}
+      {/* Content */}
+      <div className={`flex items-center gap-2 ${loading ? 'opacity-0' : 'opacity-100'}`}>
+        {!loading && icon && iconPosition === 'left' && icon}
+        {!loading && children}
+        {!loading && icon && iconPosition === 'right' && icon}
+      </div>
     </button>
   );
 };

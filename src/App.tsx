@@ -42,7 +42,16 @@ const AppContent: React.FC = () => {
   }, [isAuthenticated, isEmployer, isJobSeeker, currentView]);
 
   const handleGetStarted = () => {
-    setCurrentView('create-profile');
+    if (isAuthenticated) {
+      // If already authenticated, go to appropriate page
+      if (isEmployer) {
+        setCurrentView('dashboard');
+      } else {
+        setCurrentView('jobs');
+      }
+    } else {
+      setCurrentView('create-profile');
+    }
   };
 
   const handleSignIn = () => {
@@ -123,7 +132,7 @@ const AppContent: React.FC = () => {
       case 'profile':
         return <ProfilePage onNavigate={setCurrentView} />;
       default:
-        return null;
+        return <HomePage onGetStarted={handleGetStarted} onSignIn={handleSignIn} />;
     }
   };
 

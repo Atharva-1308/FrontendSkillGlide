@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Mail, Phone, MapPin, Building, Globe, Camera, Save, Edit3, Plus, Trash2, Award, Briefcase, GraduationCap, Star, Settings, Shield, Bell, Eye, Download, Upload } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Building, Globe, Camera, Save, Edit3, Plus, Trash2, Award, Briefcase, GraduationCap, Star, Settings, Shield, Bell, Eye, Download, Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -16,6 +16,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
   const [profileData, setProfileData] = useState({
     // Personal Info
     name: user?.name || '',
@@ -77,11 +79,32 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
     updateProfileData('skills', profileData.skills.filter(skill => skill !== skillToRemove));
   };
 
-  const handleSave = () => {
-    // Here you would typically save to API
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveMessage('');
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setIsEditing(false);
+      setSaveMessage('Profile updated successfully!');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSaveMessage(''), 3000);
+      
+      console.log('Profile saved:', profileData);
+    } catch (error) {
+      setSaveMessage('Failed to save profile. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
     setIsEditing(false);
-    // Show success message
-    console.log('Profile saved:', profileData);
+    setSaveMessage('');
+    // Reset form data if needed
   };
 
   const renderPersonalInfo = () => (
@@ -176,11 +199,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
           Bio / About Me
         </label>
         <textarea
-          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
+          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-colors ${
             theme === 'light'
               ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
               : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-          } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
+          } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700 cursor-not-allowed' : ''}`}
           rows={4}
           value={profileData.bio}
           onChange={(e) => updateProfileData('bio', e.target.value)}
@@ -210,11 +233,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
             Experience Level
           </label>
           <select
-            className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent ${
+            className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent transition-colors ${
               theme === 'light'
                 ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-            } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
+            } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700 cursor-not-allowed' : ''}`}
             value={profileData.experience}
             onChange={(e) => updateProfileData('experience', e.target.value)}
             disabled={!isEditing}
@@ -241,11 +264,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
             Preferred Work Mode
           </label>
           <select
-            className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent ${
+            className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent transition-colors ${
               theme === 'light'
                 ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-            } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
+            } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700 cursor-not-allowed' : ''}`}
             value={profileData.workMode}
             onChange={(e) => updateProfileData('workMode', e.target.value)}
             disabled={!isEditing}
@@ -305,7 +328,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
               <Badge
                 key={index}
                 variant="primary"
-                className={`flex items-center space-x-1 ${isEditing ? 'cursor-pointer' : ''}`}
+                className={`flex items-center space-x-1 ${isEditing ? 'cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/20' : ''}`}
                 onClick={() => isEditing && removeSkill(skill)}
               >
                 <span>{skill}</span>
@@ -332,7 +355,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
               variant="outline"
               onClick={() => {
                 const input = document.querySelector('input[placeholder*="Add a skill"]') as HTMLInputElement;
-                if (input) {
+                if (input && input.value.trim()) {
                   addSkill(input.value);
                   input.value = '';
                 }
@@ -394,7 +417,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
             { name: 'AWS Certified Solutions Architect', issuer: 'Amazon Web Services', date: '2023' },
             { name: 'React Developer Certification', issuer: 'Meta', date: '2022' }
           ].map((cert, index) => (
-            <Card key={index} className="flex items-center justify-between">
+            <Card key={index} className="flex items-center justify-between hover:shadow-md transition-shadow">
               <div className="flex items-center space-x-3">
                 <div className={`w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center ${
                   theme === 'dark-neon' ? 'shadow-lg shadow-green-500/25' : 'shadow-md'
@@ -452,11 +475,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
             Company Size
           </label>
           <select
-            className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent ${
+            className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent transition-colors ${
               theme === 'light'
                 ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-            } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
+            } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700 cursor-not-allowed' : ''}`}
             value={profileData.companySize}
             onChange={(e) => updateProfileData('companySize', e.target.value)}
             disabled={!isEditing}
@@ -486,11 +509,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
           Company Description
         </label>
         <textarea
-          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
+          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-colors ${
             theme === 'light'
               ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
               : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-          } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
+          } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700 cursor-not-allowed' : ''}`}
           rows={4}
           value={profileData.companyDescription}
           onChange={(e) => updateProfileData('companyDescription', e.target.value)}
@@ -511,11 +534,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
             Preferred Job Type
           </label>
           <select
-            className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent ${
+            className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent transition-colors ${
               theme === 'light'
                 ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-            } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
+            } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700 cursor-not-allowed' : ''}`}
             value={profileData.jobType}
             onChange={(e) => updateProfileData('jobType', e.target.value)}
             disabled={!isEditing}
@@ -640,7 +663,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
             { key: 'emailNotifications', label: 'Email Notifications', description: 'Receive important updates via email' },
             { key: 'jobAlerts', label: 'Job Alerts', description: 'Get notified about new job opportunities' },
           ].map((setting) => (
-            <div key={setting.key} className="flex items-center justify-between">
+            <div key={setting.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
               <div>
                 <h4 className={`font-medium ${
                   theme === 'light' ? 'text-gray-900' : 'text-white'
@@ -684,7 +707,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
               Profile Visibility
             </label>
             <select
-              className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent ${
+              className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent transition-colors ${
                 theme === 'light'
                   ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                   : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
@@ -710,7 +733,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
         </h3>
         
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
             <div>
               <h4 className={`font-medium ${
                 theme === 'light' ? 'text-gray-900' : 'text-white'
@@ -733,12 +756,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
           </div>
           
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button variant="outline" size="sm" className="mr-2">
-              Change Password
-            </Button>
-            <Button variant="outline" size="sm">
-              Download My Data
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm">
+                Change Password
+              </Button>
+              <Button variant="outline" size="sm">
+                Download My Data
+              </Button>
+              <Button variant="outline" size="sm">
+                Delete Account
+              </Button>
+            </div>
           </div>
         </div>
       </Card>
@@ -760,7 +788,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
 
   return (
     <div className={`max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 ${
-      theme === 'light' ? 'light-gradient-1 min-h-screen' : ''
+      theme === 'light' ? 'min-h-screen' : ''
     }`}>
       {/* Header */}
       <div className="mb-8">
@@ -783,17 +811,19 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
               <>
                 <Button
                   variant="outline"
-                  onClick={() => setIsEditing(false)}
+                  onClick={handleCancel}
+                  disabled={isSaving}
                 >
                   Cancel
                 </Button>
                 <Button
                   variant="primary"
                   onClick={handleSave}
+                  loading={isSaving}
                   icon={<Save className="w-4 h-4" />}
                   className="shadow-lg"
                 >
-                  Save Changes
+                  {isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </>
             ) : (
@@ -801,19 +831,41 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                 variant="primary"
                 onClick={() => setIsEditing(true)}
                 icon={<Edit3 className="w-4 h-4" />}
-                className="shadow-lg"
+                className="shadow-lg hover-lift"
               >
                 Edit Profile
               </Button>
             )}
           </div>
         </div>
+
+        {/* Save Message */}
+        {saveMessage && (
+          <div className={`mt-4 p-3 rounded-lg flex items-center space-x-2 ${
+            saveMessage.includes('success') 
+              ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+              : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+          }`}>
+            {saveMessage.includes('success') ? (
+              <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+            )}
+            <p className={`text-sm ${
+              saveMessage.includes('success') 
+                ? 'text-green-700 dark:text-green-300'
+                : 'text-red-700 dark:text-red-300'
+            }`}>
+              {saveMessage}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Sidebar Navigation */}
         <div className="lg:col-span-1">
-          <Card>
+          <Card className="sticky top-24">
             <nav className="space-y-1">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -823,9 +875,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                    className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg text-left transition-all duration-200 hover:scale-105 ${
                       isActive
-                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-md'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                   >

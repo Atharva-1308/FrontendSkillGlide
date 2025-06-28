@@ -64,14 +64,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Simulate loading user from storage or API
     try {
-      const savedUser = localStorage.getItem('job-portal-user');
+      const savedUser = localStorage.getItem('skillglide-user');
       if (savedUser) {
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
       }
     } catch (error) {
       console.error('Error loading user from localStorage:', error);
-      localStorage.removeItem('job-portal-user');
+      localStorage.removeItem('skillglide-user');
     }
     setLoading(false);
   }, []);
@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Use dummy account data
         const { password: _, ...userWithoutPassword } = dummyAccount;
         setUser(userWithoutPassword);
-        localStorage.setItem('job-portal-user', JSON.stringify(userWithoutPassword));
+        localStorage.setItem('skillglide-user', JSON.stringify(userWithoutPassword));
       } else {
         // Create mock user for other emails
         const mockUser: User = {
@@ -102,11 +102,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
 
         setUser(mockUser);
-        localStorage.setItem('job-portal-user', JSON.stringify(mockUser));
+        localStorage.setItem('skillglide-user', JSON.stringify(mockUser));
       }
     } catch (error) {
       console.error('Login error:', error);
-      throw new Error('Login failed');
+      throw new Error('Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -129,10 +129,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
 
       setUser(newUser);
-      localStorage.setItem('job-portal-user', JSON.stringify(newUser));
+      localStorage.setItem('skillglide-user', JSON.stringify(newUser));
     } catch (error) {
       console.error('Registration error:', error);
-      throw new Error('Registration failed');
+      throw new Error('Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -141,7 +141,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     try {
       setUser(null);
-      localStorage.removeItem('job-portal-user');
+      localStorage.removeItem('skillglide-user');
+      
+      // Clear any other stored data
+      localStorage.removeItem('skillglide-theme');
       
       // Force redirect to home page by reloading the page
       // This ensures the app state is completely reset

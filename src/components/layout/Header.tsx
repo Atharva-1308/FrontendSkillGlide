@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, User, Settings, LogOut, Sun, Moon, Zap, Bell, Home } from 'lucide-react';
+import { Menu, X, User, Settings, LogOut, Sun, Moon, Zap, Bell, Home, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../ui/Button';
@@ -49,27 +49,23 @@ export const Header: React.FC<HeaderProps> = ({
   const getNavigation = () => {
     if (!isAuthenticated) {
       return [
-        { name: 'Home', href: '#home', view: 'home' as const },
-        { name: 'Find Jobs', href: '#jobs', view: 'jobs' as const },
-        { name: 'Resume Builder', href: '#resume', view: 'resume' as const },
-        { name: 'Companies', href: '#companies', view: 'jobs' as const },
-        { name: 'Post Jobs', href: '#post-jobs', view: 'post-job' as const },
+        { name: 'Home', href: '#home', view: 'home' as const, icon: Home },
+        { name: 'Find Jobs', href: '#jobs', view: 'jobs' as const, icon: User },
+        { name: 'Resume Builder', href: '#resume', view: 'resume' as const, icon: User },
       ];
     }
 
     if (isEmployer) {
       return [
-        { name: 'Dashboard', href: '#dashboard', view: 'dashboard' as const },
-        { name: 'Post Job', href: '#post-job', view: 'post-job' as const },
-        { name: 'Find Candidates', href: '#candidates', view: 'candidates' as const },
-        { name: 'Profile', href: '#profile', view: 'profile' as const },
+        { name: 'Dashboard', href: '#dashboard', view: 'dashboard' as const, icon: Home },
+        { name: 'Post Job', href: '#post-job', view: 'post-job' as const, icon: User },
+        { name: 'Find Candidates', href: '#candidates', view: 'candidates' as const, icon: User },
       ];
     } else if (isJobSeeker) {
       return [
-        { name: 'Find Jobs', href: '#jobs', view: 'jobs' as const },
-        { name: 'Resume Builder', href: '#resume', view: 'resume' as const },
-        { name: 'Companies', href: '#companies', view: 'jobs' as const },
-        { name: 'Career Tips', href: '#tips', view: 'jobs' as const },
+        { name: 'Find Jobs', href: '#jobs', view: 'jobs' as const, icon: User },
+        { name: 'Resume Builder', href: '#resume', view: 'resume' as const, icon: User },
+        { name: 'My Profile', href: '#profile', view: 'profile' as const, icon: User },
       ];
     }
 
@@ -79,8 +75,8 @@ export const Header: React.FC<HeaderProps> = ({
   const navigation = getNavigation();
 
   const handleNavigation = (view: 'home' | 'jobs' | 'resume' | 'profile' | 'dashboard' | 'post-job' | 'candidates') => {
-    // If user is not authenticated and tries to access post-job, show auth modal
-    if (!isAuthenticated && view === 'post-job') {
+    // If user is not authenticated and tries to access protected routes
+    if (!isAuthenticated && ['post-job', 'profile', 'dashboard', 'candidates'].includes(view)) {
       onSignIn?.();
       return;
     }
@@ -100,10 +96,10 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className={`sticky top-0 z-50 transition-all duration-300 border-b ${
+      <header className={`sticky top-0 z-50 transition-all duration-300 border-b backdrop-blur-lg ${
         theme === 'light'
-          ? 'bg-white/95 backdrop-blur-lg border-gray-200/50 soft-shadow'
-          : 'bg-gray-900/95 backdrop-blur-lg border-gray-700/50'
+          ? 'bg-white/95 border-gray-200/50 shadow-sm'
+          : 'bg-gray-900/95 border-gray-700/50 shadow-lg'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -114,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className="flex-shrink-0 flex items-center space-x-2 hover:opacity-80 transition-all duration-200 hover:scale-105"
               >
                 <div className={`w-8 h-8 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                  theme === 'dark-neon' ? 'glow' : 'soft-shadow'
+                  theme === 'dark-neon' ? 'shadow-lg shadow-blue-500/25' : 'shadow-md'
                 }`}>
                   <Zap className="w-5 h-5 text-white" />
                 </div>
@@ -130,7 +126,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   key={item.name}
                   onClick={() => handleNavigation(item.view)}
-                  className={`text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-cyan-400 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                  className={`text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-cyan-400 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center space-x-2 ${
                     currentView === item.view 
                       ? `text-blue-600 dark:text-cyan-400 ${
                           theme === 'light' ? 'bg-blue-50' : 'bg-cyan-900/20'
@@ -138,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({
                       : ''
                   }`}
                 >
-                  {item.name}
+                  <span>{item.name}</span>
                 </button>
               ))}
             </nav>
@@ -147,25 +143,27 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center space-x-3">
               {/* Notifications */}
               {isAuthenticated && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="relative hover-lift"
-                  onClick={() => setIsNotificationsOpen(true)}
-                  icon={<Bell className="w-4 h-4" />}
-                >
-                  {unreadNotificationCount > 0 && (
-                    <Badge 
-                      variant="error" 
-                      size="sm" 
-                      className={`absolute -top-1 -right-1 min-w-[20px] h-5 flex items-center justify-center text-xs font-bold animate-pulse ${
-                        theme === 'dark-neon' ? 'glow' : ''
-                      }`}
-                    >
-                      {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
-                    </Badge>
-                  )}
-                </Button>
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="relative hover-lift"
+                    onClick={() => setIsNotificationsOpen(true)}
+                    icon={<Bell className="w-4 h-4" />}
+                  >
+                    {unreadNotificationCount > 0 && (
+                      <Badge 
+                        variant="error" 
+                        size="sm" 
+                        className={`absolute -top-1 -right-1 min-w-[20px] h-5 flex items-center justify-center text-xs font-bold animate-pulse ${
+                          theme === 'dark-neon' ? 'shadow-lg shadow-red-500/25' : ''
+                        }`}
+                      >
+                        {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </div>
               )}
 
               {/* Theme Toggle Button */}
@@ -173,21 +171,19 @@ export const Header: React.FC<HeaderProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={toggleTheme}
-                className={`theme-toggle relative overflow-hidden transition-all duration-300 animate-theme-transition ${
+                className={`theme-toggle relative overflow-hidden transition-all duration-300 ${
                   isDark 
-                    ? 'text-cyan-400 hover:bg-cyan-900/20 hover:text-cyan-300 neon-glow' 
-                    : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 gentle-glow'
+                    ? 'text-cyan-400 hover:bg-cyan-900/20 hover:text-cyan-300' 
+                    : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
                 }`}
                 icon={
                   <div className="relative">
                     {isDark ? (
                       <Moon className={`w-4 h-4 transition-all duration-300 ${
-                        theme === 'dark-neon' ? 'animate-pulse glow-text' : ''
+                        theme === 'dark-neon' ? 'animate-pulse' : ''
                       }`} />
                     ) : (
-                      <Sun className={`w-4 h-4 transition-all duration-300 ${
-                        theme === 'light' ? 'animate-bounce-gentle' : ''
-                      }`} />
+                      <Sun className={`w-4 h-4 transition-all duration-300`} />
                     )}
                   </div>
                 }
@@ -208,25 +204,33 @@ export const Header: React.FC<HeaderProps> = ({
                     }`}
                   >
                     <div className={`w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center transition-all duration-300 ${
-                      theme === 'dark-neon' ? 'glow' : 'soft-shadow'
+                      theme === 'dark-neon' ? 'shadow-lg shadow-blue-500/25' : 'shadow-md'
                     }`}>
                       <span className="text-white text-sm font-medium">
                         {user?.name?.charAt(0).toUpperCase() || 'U'}
                       </span>
                     </div>
-                    <span className="hidden sm:block text-sm font-medium">{user?.name || 'User'}</span>
+                    <div className="hidden sm:block text-left">
+                      <div className="text-sm font-medium">{user?.name || 'User'}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {user?.role === 'employer' ? 'Employer' : 'Job Seeker'}
+                      </div>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${
+                      isProfileOpen ? 'rotate-180' : ''
+                    }`} />
                   </Button>
                   
                   {isProfileOpen && (
-                    <div className={`absolute right-0 mt-2 w-56 rounded-xl shadow-xl border py-2 z-50 animate-scale-in glass ${
+                    <div className={`absolute right-0 mt-2 w-64 rounded-xl shadow-xl border py-2 z-50 animate-scale-in backdrop-blur-lg ${
                       theme === 'light'
-                        ? 'bg-white border-gray-200'
-                        : 'bg-gray-800 border-gray-700'
+                        ? 'bg-white/95 border-gray-200'
+                        : 'bg-gray-800/95 border-gray-700'
                     }`}>
                       <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                         <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.name || 'User'}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email || 'user@example.com'}</p>
-                        <div className="mt-1">
+                        <div className="mt-2">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             user?.role === 'employer' 
                               ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
@@ -239,7 +243,7 @@ export const Header: React.FC<HeaderProps> = ({
                       
                       <button 
                         onClick={() => handleNavigation('profile')}
-                        className={`w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 flex items-center space-x-3 transition-colors ${
+                        className={`w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 flex items-center space-x-3 transition-colors ${
                           theme === 'light' 
                             ? 'hover:bg-gray-50' 
                             : 'hover:bg-gray-700'
@@ -249,11 +253,14 @@ export const Header: React.FC<HeaderProps> = ({
                         <span>My Profile</span>
                       </button>
                       
-                      <button className={`w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 flex items-center space-x-3 transition-colors ${
-                        theme === 'light' 
-                          ? 'hover:bg-gray-50' 
-                          : 'hover:bg-gray-700'
-                      }`}>
+                      <button 
+                        onClick={() => handleNavigation('profile')}
+                        className={`w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 flex items-center space-x-3 transition-colors ${
+                          theme === 'light' 
+                            ? 'hover:bg-gray-50' 
+                            : 'hover:bg-gray-700'
+                        }`}
+                      >
                         <Settings className="w-4 h-4" />
                         <span>Settings</span>
                       </button>
@@ -261,7 +268,7 @@ export const Header: React.FC<HeaderProps> = ({
                       <div className="border-t border-gray-200 dark:border-gray-700 mt-2 pt-2">
                         <button
                           onClick={handleLogout}
-                          className={`w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 flex items-center space-x-3 transition-colors ${
+                          className={`w-full px-4 py-3 text-left text-sm text-red-600 dark:text-red-400 flex items-center space-x-3 transition-colors ${
                             theme === 'light' 
                               ? 'hover:bg-red-50' 
                               : 'hover:bg-red-900/20'
@@ -322,7 +329,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   key={item.name}
                   onClick={() => handleNavigation(item.view)}
-                  className={`block w-full text-left px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-cyan-400 rounded-lg transition-all duration-200 ${
+                  className={`block w-full text-left px-3 py-3 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-cyan-400 rounded-lg transition-all duration-200 flex items-center space-x-3 ${
                     currentView === item.view 
                       ? `text-blue-600 dark:text-cyan-400 ${
                           theme === 'light' ? 'bg-blue-50' : 'bg-cyan-900/20'
@@ -334,14 +341,14 @@ export const Header: React.FC<HeaderProps> = ({
                         }`
                   }`}
                 >
-                  {item.name}
+                  <span>{item.name}</span>
                 </button>
               ))}
               
               {/* Mobile Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className={`block w-full text-left px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-cyan-400 rounded-lg transition-all duration-200 flex items-center space-x-3 ${
+                className={`block w-full text-left px-3 py-3 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-cyan-400 rounded-lg transition-all duration-200 flex items-center space-x-3 ${
                   theme === 'light' 
                     ? 'hover:bg-gray-100' 
                     : 'hover:bg-gray-800'
@@ -358,7 +365,7 @@ export const Header: React.FC<HeaderProps> = ({
                     size="sm" 
                     fullWidth
                     onClick={onSignIn}
-                    className="hover-lift"
+                    className="hover-lift justify-start"
                   >
                     Log In
                   </Button>

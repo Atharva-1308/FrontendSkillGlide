@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mail, Lock, User, Building } from 'lucide-react';
+import { X, Mail, Lock, User, Building, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [mode, setMode] = useState<'login' | 'register'>(defaultMode);
   const [userType, setUserType] = useState<'jobseeker' | 'employer'>('jobseeker');
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -27,8 +29,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     company: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { login, register, loading } = useAuth();
+  const { theme } = useTheme();
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -36,8 +40,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setMode(defaultMode);
       setFormData({ name: '', email: '', password: '', company: '' });
       setErrors({});
+      setIsSubmitting(false);
+      setShowPassword(false);
     }
   }, [isOpen, defaultMode]);
+
+  // Close modal on escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -59,7 +77,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (mode === 'register') {
       if (!formData.name.trim()) {
         newErrors.name = 'Name is required';
+      } else if (formData.name.trim().length < 2) {
+        newErrors.name = 'Name must be at least 2 characters';
       }
+      
       if (userType === 'employer' && !formData.company.trim()) {
         newErrors.company = 'Company name is required';
       }
@@ -72,10 +93,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!validateForm() || isSubmitting) {
       return;
     }
 
+    setIsSubmitting(true);
     setErrors({});
 
     try {
@@ -91,7 +113,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
       onClose();
     } catch (error) {
-      setErrors({ general: 'Authentication failed. Please try again.' });
+      setErrors({ general: 'Authentication failed. Please check your credentials and try again.' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -108,12 +132,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onGetStarted?.();
   };
 
+  const switchMode = () => {
+    setMode(mode === 'login' ? 'register' : 'login');
+    setErrors({});
+    setFormData({ name: '', email: '', password: '', company: '' });
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md relative animate-scale-in">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <Card className={`w-full max-w-md relative animate-scale-in ${
+        theme === 'dark-neon' ? 'shadow-2xl shadow-cyan-500/10' : 'shadow-2xl'
+      }`}>
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 z-10"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 z-10 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
@@ -139,10 +172,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="button"
               onClick={() => setUserType('jobseeker')}
-              className={`p-3 rounded-lg border-2 transition-colors ${
+              className={`p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
                 userType === 'jobseeker'
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md'
+                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
               <User className="w-5 h-5 mx-auto mb-1" />
@@ -151,10 +184,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="button"
               onClick={() => setUserType('employer')}
-              className={`p-3 rounded-lg border-2 transition-colors ${
+              className={`p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
                 userType === 'employer'
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md'
+                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
               <Building className="w-5 h-5 mx-auto mb-1" />
@@ -174,6 +207,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               error={errors.name}
               required
               fullWidth
+              disabled={isSubmitting}
             />
           )}
 
@@ -187,6 +221,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               error={errors.company}
               required
               fullWidth
+              disabled={isSubmitting}
             />
           )}
 
@@ -200,22 +235,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             error={errors.email}
             required
             fullWidth
+            disabled={isSubmitting}
           />
 
-          <Input
-            label="Password"
-            type="password"
-            placeholder="••••••••"
-            value={formData.password}
-            onChange={(e) => updateFormData('password', e.target.value)}
-            icon={<Lock className="w-4 h-4" />}
-            error={errors.password}
-            required
-            fullWidth
-          />
+          <div className="relative">
+            <Input
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={(e) => updateFormData('password', e.target.value)}
+              icon={<Lock className="w-4 h-4" />}
+              error={errors.password}
+              required
+              fullWidth
+              disabled={isSubmitting}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-9 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
 
           {errors.general && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start space-x-2">
+              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
               <p className="text-sm text-red-600 dark:text-red-400">{errors.general}</p>
             </div>
           )}
@@ -224,8 +272,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             type="submit"
             variant="primary"
             size="lg"
-            loading={loading}
+            loading={isSubmitting || loading}
             fullWidth
+            className="shadow-lg"
           >
             {mode === 'login' ? 'Sign In to SkillGlide' : 'Create SkillGlide Account'}
           </Button>
@@ -235,20 +284,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <p className="text-sm text-gray-600 dark:text-gray-400">
             {mode === 'login' ? "Don't have a SkillGlide account?" : 'Already have a SkillGlide account?'}
             <button
-              onClick={() => {
-                if (mode === 'login') {
-                  handleSignUpClick();
-                } else {
-                  setMode('login');
-                  setErrors({});
-                }
-              }}
-              className="ml-1 text-blue-600 dark:text-blue-400 hover:underline font-medium"
+              onClick={switchMode}
+              className="ml-1 text-blue-600 dark:text-blue-400 hover:underline font-medium transition-colors"
+              disabled={isSubmitting}
             >
               {mode === 'login' ? 'Sign up' : 'Sign in'}
             </button>
           </p>
         </div>
+
+        {/* Success indicator for demo accounts */}
+        {mode === 'login' && (
+          <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="flex items-start space-x-2">
+              <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-green-700 dark:text-green-300">
+                <p className="font-medium">Demo Accounts Available:</p>
+                <p>Job Seeker: john.doe@skillglide.com / password123</p>
+                <p>Employer: hr@techcorp.com / employer123</p>
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

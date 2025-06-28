@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, X, Check, CheckCheck, Trash2, Settings, Briefcase, Users, Star, MessageCircle, Calendar, TrendingUp, Filter, Search } from 'lucide-react';
+import { Bell, X, Check, CheckCheck, Trash2, Settings, Briefcase, Users, Star, MessageCircle, Calendar, TrendingUp, Filter, Search, MoreVertical } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -300,9 +300,9 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 pt-16">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 pt-16 backdrop-blur-sm">
       <Card className={`w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden animate-scale-in ${
-        theme === 'dark-neon' ? 'neon-glow' : 'soft-shadow'
+        theme === 'dark-neon' ? 'shadow-2xl shadow-cyan-500/10' : 'shadow-2xl'
       }`}>
         {/* Header */}
         <div className={`flex items-center justify-between p-6 border-b ${
@@ -346,6 +346,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
               size="sm"
               onClick={onClose}
               icon={<X className="w-4 h-4" />}
+              aria-label="Close notifications"
             />
           </div>
         </div>
@@ -491,16 +492,18 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
                           }`}>
                             {formatTimestamp(notification.timestamp)}
                           </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteNotification(notification.id);
-                            }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            icon={<Trash2 className="w-4 h-4" />}
-                          />
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNotification(notification.id);
+                              }}
+                              icon={<Trash2 className="w-4 h-4" />}
+                              aria-label="Delete notification"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
