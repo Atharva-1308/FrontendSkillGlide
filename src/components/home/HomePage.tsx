@@ -151,20 +151,20 @@ export const HomePage: React.FC<HomePageProps> = ({ onGetStarted, onSignIn }) =>
                     <div className="flex justify-between items-center">
                       <span className={`text-sm ${
                         theme === 'light' ? 'text-gray-700' : 'text-gray-400'
-                      }`}>Senior Developer</span>
-                      <Badge variant="success" size="sm" gradient>Match</Badge>
+                      }`}>Start your journey</span>
+                      <Badge variant="success" size="sm" gradient>Ready</Badge>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className={`text-sm ${
                         theme === 'light' ? 'text-gray-700' : 'text-gray-400'
-                      }`}>Product Manager</span>
-                      <Badge variant="primary" size="sm" gradient>Match</Badge>
+                      }`}>Build your profile</span>
+                      <Badge variant="primary" size="sm" gradient>Next</Badge>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className={`text-sm ${
                         theme === 'light' ? 'text-gray-700' : 'text-gray-400'
-                      }`}>UX Designer</span>
-                      <Badge variant="secondary" size="sm" gradient>Match</Badge>
+                      }`}>Find opportunities</span>
+                      <Badge variant="secondary" size="sm" gradient>Soon</Badge>
                     </div>
                   </div>
                 </Card>

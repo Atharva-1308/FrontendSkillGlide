@@ -26,26 +26,35 @@ def register(
     db: Session = Depends(get_db)
 ):
     """Register a new user"""
-    # Check if user already exists
-    existing_user = get_user_by_email(db, email=user_data.email)
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+    try:
+        # Check if user already exists
+        existing_user = get_user_by_email(db, email=user_data.email)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        # Create new user
+        user = create_user(db, user_data)
+        
+        # Create tokens
+        access_token = create_access_token(subject=user.id)
+        refresh_token = create_refresh_token(subject=user.id)
+        
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            user=user
         )
-    
-    # Create new user
-    user = create_user(db, user_data)
-    
-    # Create tokens
-    access_token = create_access_token(subject=user.id)
-    refresh_token = create_refresh_token(subject=user.id)
-    
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        user=user
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Registration error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed"
+        )
 
 
 @router.post("/login", response_model=Token)
@@ -54,40 +63,49 @@ def login(
     db: Session = Depends(get_db)
 ):
     """Login user"""
-    user = get_user_by_email(db, email=user_data.email)
-    
-    if not user or not verify_password(user_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password"
+    try:
+        user = get_user_by_email(db, email=user_data.email)
+        
+        if not user or not verify_password(user_data.password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password"
+            )
+        
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Inactive user"
+            )
+        
+        if user.role != user_data.role:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid role for this account"
+            )
+        
+        # Update last login
+        from datetime import datetime
+        user.last_login = datetime.utcnow()
+        db.commit()
+        
+        # Create tokens
+        access_token = create_access_token(subject=user.id)
+        refresh_token = create_refresh_token(subject=user.id)
+        
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            user=user
         )
-    
-    if not user.is_active:
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Login error: {e}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed"
         )
-    
-    if user.role != user_data.role:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid role for this account"
-        )
-    
-    # Update last login
-    from datetime import datetime
-    user.last_login = datetime.utcnow()
-    db.commit()
-    
-    # Create tokens
-    access_token = create_access_token(subject=user.id)
-    refresh_token = create_refresh_token(subject=user.id)
-    
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        user=user
-    )
 
 
 @router.post("/refresh", response_model=Token)
@@ -96,30 +114,39 @@ def refresh_token(
     db: Session = Depends(get_db)
 ):
     """Refresh access token"""
-    user_id = verify_token(token_data.refresh_token, token_type="refresh")
-    
-    if user_id is None:
+    try:
+        user_id = verify_token(token_data.refresh_token, token_type="refresh")
+        
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token"
+            )
+        
+        user = get_user_by_id(db, user_id=int(user_id))
+        if not user or not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found or inactive"
+            )
+        
+        # Create new tokens
+        access_token = create_access_token(subject=user.id)
+        refresh_token = create_refresh_token(subject=user.id)
+        
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            user=user
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Token refresh error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
+            detail="Token refresh failed"
         )
-    
-    user = get_user_by_id(db, user_id=int(user_id))
-    if not user or not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive"
-        )
-    
-    # Create new tokens
-    access_token = create_access_token(subject=user.id)
-    refresh_token = create_refresh_token(subject=user.id)
-    
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        user=user
-    )
 
 
 @router.post("/password-reset")
@@ -128,17 +155,21 @@ def request_password_reset(
     db: Session = Depends(get_db)
 ):
     """Request password reset"""
-    user = get_user_by_email(db, email=password_reset.email)
-    
-    if user:
-        # Generate reset token
-        reset_token = generate_password_reset_token(user.email)
+    try:
+        user = get_user_by_email(db, email=password_reset.email)
         
-        # Send email (in production, you'd send this via email service)
-        send_password_reset_email(user.email, reset_token)
-    
-    # Always return success to prevent email enumeration
-    return {"message": "If the email exists, a password reset link has been sent"}
+        if user:
+            # Generate reset token
+            reset_token = generate_password_reset_token(user.email)
+            
+            # Send email (in production, you'd send this via email service)
+            send_password_reset_email(user.email, reset_token)
+        
+        # Always return success to prevent email enumeration
+        return {"message": "If the email exists, a password reset link has been sent"}
+    except Exception as e:
+        print(f"Password reset request error: {e}")
+        return {"message": "If the email exists, a password reset link has been sent"}
 
 
 @router.post("/password-reset/confirm")
@@ -147,23 +178,32 @@ def confirm_password_reset(
     db: Session = Depends(get_db)
 ):
     """Confirm password reset"""
-    email = verify_password_reset_token(password_reset_confirm.token)
-    
-    if not email:
+    try:
+        email = verify_password_reset_token(password_reset_confirm.token)
+        
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+        
+        user = get_user_by_email(db, email=email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Update password
+        hashed_password = get_password_hash(password_reset_confirm.new_password)
+        update_user_password(db, user_id=user.id, hashed_password=hashed_password)
+        
+        return {"message": "Password updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Password reset confirmation error: {e}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired reset token"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Password reset failed"
         )
-    
-    user = get_user_by_email(db, email=email)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # Update password
-    hashed_password = get_password_hash(password_reset_confirm.new_password)
-    update_user_password(db, user_id=user.id, hashed_password=hashed_password)
-    
-    return {"message": "Password updated successfully"}

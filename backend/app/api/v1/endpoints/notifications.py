@@ -16,11 +16,15 @@ def get_notifications(
     current_user: User = Depends(get_current_user)
 ):
     """Get user notifications"""
-    notifications = db.query(Notification).filter(
-        Notification.user_id == current_user.id
-    ).order_by(Notification.created_at.desc()).all()
-    
-    return notifications
+    try:
+        notifications = db.query(Notification).filter(
+            Notification.user_id == current_user.id
+        ).order_by(Notification.created_at.desc()).all()
+        
+        return notifications
+    except Exception as e:
+        print(f"Error fetching notifications: {e}")
+        return []
 
 
 @router.put("/{notification_id}", response_model=NotificationResponse)
@@ -85,16 +89,20 @@ def mark_all_notifications_read(
     """Mark all notifications as read"""
     from datetime import datetime
     
-    db.query(Notification).filter(
-        Notification.user_id == current_user.id,
-        Notification.is_read == False
-    ).update({
-        "is_read": True,
-        "read_at": datetime.utcnow()
-    })
-    
-    db.commit()
-    return {"message": "All notifications marked as read"}
+    try:
+        db.query(Notification).filter(
+            Notification.user_id == current_user.id,
+            Notification.is_read == False
+        ).update({
+            "is_read": True,
+            "read_at": datetime.utcnow()
+        })
+        
+        db.commit()
+        return {"message": "All notifications marked as read"}
+    except Exception as e:
+        print(f"Error marking notifications as read: {e}")
+        return {"message": "Failed to mark notifications as read"}
 
 
 @router.get("/unread-count")
@@ -103,9 +111,13 @@ def get_unread_notifications_count(
     current_user: User = Depends(get_current_user)
 ):
     """Get count of unread notifications"""
-    count = db.query(Notification).filter(
-        Notification.user_id == current_user.id,
-        Notification.is_read == False
-    ).count()
-    
-    return {"count": count}
+    try:
+        count = db.query(Notification).filter(
+            Notification.user_id == current_user.id,
+            Notification.is_read == False
+        ).count()
+        
+        return {"count": count}
+    except Exception as e:
+        print(f"Error getting unread count: {e}")
+        return {"count": 0}

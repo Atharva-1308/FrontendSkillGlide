@@ -26,7 +26,8 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
     () => notificationService.getNotifications(),
     {
       immediate: isOpen,
-      onSuccess: (data) => setNotifications(data),
+      onSuccess: (data) => setNotifications(data || []),
+      onError: () => setNotifications([]),
     }
   );
 

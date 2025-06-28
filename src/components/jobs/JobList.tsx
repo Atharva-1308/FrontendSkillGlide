@@ -71,13 +71,13 @@ export const JobList: React.FC = () => {
           No jobs found
         </h3>
         <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-4">
-          Try adjusting your search criteria or filters to find more opportunities.
+          There are currently no job postings available. Check back later for new opportunities.
         </p>
         <Button
           variant="outline"
           onClick={() => window.location.reload()}
         >
-          Reset Filters
+          Refresh
         </Button>
       </Card>
     );

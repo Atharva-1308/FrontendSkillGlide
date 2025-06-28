@@ -41,11 +41,17 @@ export const JobProvider: React.FC<JobProviderProps> = ({ children }) => {
     refetch: refetchJobs,
   } = useApi(() => jobService.getJobs(filters), {
     immediate: true,
+    onError: (error) => {
+      console.error('Failed to fetch jobs:', error);
+    },
   });
 
   // Apply filters whenever jobs or filters change
   useEffect(() => {
-    if (!jobs) return;
+    if (!jobs || !Array.isArray(jobs)) {
+      setFilteredJobs([]);
+      return;
+    }
 
     let filtered = [...jobs];
 
@@ -56,7 +62,7 @@ export const JobProvider: React.FC<JobProviderProps> = ({ children }) => {
         job.title.toLowerCase().includes(searchLower) ||
         job.description.toLowerCase().includes(searchLower) ||
         job.location.toLowerCase().includes(searchLower) ||
-        job.skills.some(skill => skill.toLowerCase().includes(searchLower))
+        (job.skills && job.skills.some(skill => skill.toLowerCase().includes(searchLower)))
       );
     }
 
@@ -103,7 +109,7 @@ export const JobProvider: React.FC<JobProviderProps> = ({ children }) => {
     if (filters.skills && filters.skills.length > 0) {
       filtered = filtered.filter(job =>
         filters.skills!.some(skill =>
-          job.skills.some(jobSkill => 
+          job.skills && job.skills.some(jobSkill => 
             jobSkill.toLowerCase().includes(skill.toLowerCase())
           )
         )

@@ -23,7 +23,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
       change: '0 this month',
       icon: <Briefcase className="w-6 h-6" />,
       color: 'from-blue-500 to-cyan-500',
-      trend: 'up'
+      trend: 'neutral'
     },
     {
       title: 'Total Applications',
@@ -31,7 +31,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
       change: '0 this week',
       icon: <Users className="w-6 h-6" />,
       color: 'from-green-500 to-emerald-500',
-      trend: 'up'
+      trend: 'neutral'
     },
     {
       title: 'Profile Views',
@@ -39,7 +39,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
       change: '0% vs last month',
       icon: <Eye className="w-6 h-6" />,
       color: 'from-purple-500 to-pink-500',
-      trend: 'up'
+      trend: 'neutral'
     },
     {
       title: 'Hired This Month',
@@ -47,7 +47,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
       change: '0 pending offers',
       icon: <TrendingUp className="w-6 h-6" />,
       color: 'from-orange-500 to-red-500',
-      trend: 'up'
+      trend: 'neutral'
     }
   ];
 
@@ -89,7 +89,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
             <p className={`text-lg ${
               theme === 'light' ? 'text-gray-600' : 'text-gray-400'
             }`}>
-              Here's what's happening with your hiring at {(user as any)?.company || 'your company'}
+              Here's what's happening with your hiring
             </p>
           </div>
           <Button
@@ -114,8 +114,8 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
                 <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center text-white shadow-lg`}>
                   {stat.icon}
                 </div>
-                <Badge variant={stat.trend === 'up' ? 'success' : 'warning'} size="sm">
-                  {stat.trend === 'up' ? '↗' : '↘'}
+                <Badge variant="outline" size="sm">
+                  New
                 </Badge>
               </div>
               <h3 className={`text-2xl font-bold mb-1 ${
@@ -129,7 +129,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
                 {stat.title}
               </p>
               <p className={`text-xs mt-1 ${
-                stat.trend === 'up' ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
+                theme === 'light' ? 'text-gray-500' : 'text-gray-500'
               }`}>
                 {stat.change}
               </p>
@@ -153,86 +153,22 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
               </Button>
             </div>
             
-            {recentJobs.length > 0 ? (
-              <div className="space-y-4">
-                {recentJobs.map((job: any) => (
-                  <div key={job.id} className={`p-4 rounded-xl border transition-all hover:shadow-md ${
-                    theme === 'light' 
-                      ? 'border-gray-200 hover:border-gray-300 bg-gray-50' 
-                      : 'border-gray-700 hover:border-gray-600 bg-gray-800'
-                  }`}>
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className={`font-semibold text-lg mb-1 ${
-                          theme === 'light' ? 'text-gray-900' : 'text-white'
-                        }`}>
-                          {job.title}
-                        </h3>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                          <div className="flex items-center">
-                            <MapPin className="w-4 h-4 mr-1" />
-                            {job.location}
-                          </div>
-                          <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {job.type}
-                          </div>
-                          <div className="flex items-center">
-                            <DollarSign className="w-4 h-4 mr-1" />
-                            {job.salary}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <Badge variant={getStatusColor(job.status)} size="sm" gradient>
-                        {job.status}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4 text-sm">
-                        <span className={`flex items-center ${
-                          theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                        }`}>
-                          <Users className="w-4 h-4 mr-1" />
-                          {job.applications} applications
-                        </span>
-                        <span className={`${
-                          theme === 'light' ? 'text-gray-500' : 'text-gray-500'
-                        }`}>
-                          Posted {job.postedAt}
-                        </span>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button variant="ghost" size="sm">
-                          Edit
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          View Applications
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
-                <Briefcase className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  No job postings yet
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-                  Start attracting top talent by posting your first job opening.
-                </p>
-                <Button
-                  variant="primary"
-                  onClick={() => onNavigate('post-job')}
-                  icon={<Plus className="w-4 h-4" />}
-                >
-                  Post Your First Job
-                </Button>
-              </div>
-            )}
+            <div className="text-center py-12 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+              <Briefcase className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                No job postings yet
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                Start attracting top talent by posting your first job opening.
+              </p>
+              <Button
+                variant="primary"
+                onClick={() => onNavigate('post-job')}
+                icon={<Plus className="w-4 h-4" />}
+              >
+                Post Your First Job
+              </Button>
+            </div>
           </Card>
         </div>
 
@@ -250,59 +186,15 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
               </Button>
             </div>
             
-            {recentApplications.length > 0 ? (
-              <div className="space-y-4">
-                {recentApplications.map((application: any) => (
-                  <div key={application.id} className={`p-4 rounded-xl border transition-all hover:shadow-md cursor-pointer ${
-                    theme === 'light' 
-                      ? 'border-gray-200 hover:border-gray-300 bg-gray-50' 
-                      : 'border-gray-700 hover:border-gray-600 bg-gray-800'
-                  }`}>
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <h3 className={`font-semibold text-sm ${
-                            theme === 'light' ? 'text-gray-900' : 'text-white'
-                          }`}>
-                            {application.candidateName}
-                          </h3>
-                          <Badge variant={getStatusColor(application.status)} size="sm">
-                            {application.status}
-                          </Badge>
-                        </div>
-                        <p className={`text-xs mb-2 ${
-                          theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                        }`}>
-                          Applied for {application.jobTitle}
-                        </p>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className={`${
-                            theme === 'light' ? 'text-gray-500' : 'text-gray-500'
-                          }`}>
-                            {application.experience} exp
-                          </span>
-                          <span className={`${
-                            theme === 'light' ? 'text-gray-500' : 'text-gray-500'
-                          }`}>
-                            {application.appliedAt}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
-                <Users className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  No applications yet
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4 max-w-md mx-auto">
-                  Post a job to start receiving applications from qualified candidates.
-                </p>
-              </div>
-            )}
+            <div className="text-center py-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+              <Users className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                No applications yet
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4 max-w-md mx-auto">
+                Post a job to start receiving applications from qualified candidates.
+              </p>
+            </div>
           </Card>
 
           {/* Quick Actions */}

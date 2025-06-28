@@ -24,13 +24,20 @@ def update_current_user_profile(
     current_user: User = Depends(get_current_user)
 ):
     """Update current user profile"""
-    updated_user = update_user(db, user_id=current_user.id, user_data=user_data)
-    if not updated_user:
+    try:
+        updated_user = update_user(db, user_id=current_user.id, user_data=user_data)
+        if not updated_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        return updated_user
+    except Exception as e:
+        print(f"Error updating user profile: {e}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update profile"
         )
-    return updated_user
 
 
 @router.post("/change-password")
@@ -44,24 +51,33 @@ def change_password(
     from app.core.security import verify_password, get_password_hash
     from app.crud.user import update_user_password
     
-    # Verify current password
-    if not verify_password(current_password, current_user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect current password"
-        )
-    
-    # Update password
-    hashed_password = get_password_hash(new_password)
-    success = update_user_password(db, user_id=current_user.id, hashed_password=hashed_password)
-    
-    if not success:
+    try:
+        # Verify current password
+        if not verify_password(current_password, current_user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect current password"
+            )
+        
+        # Update password
+        hashed_password = get_password_hash(new_password)
+        success = update_user_password(db, user_id=current_user.id, hashed_password=hashed_password)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update password"
+            )
+        
+        return {"message": "Password updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error changing password: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update password"
+            detail="Failed to change password"
         )
-    
-    return {"message": "Password updated successfully"}
 
 
 @router.delete("/me")
@@ -72,14 +88,23 @@ def delete_current_user_account(
     """Delete current user account"""
     from app.crud.user import deactivate_user
     
-    success = deactivate_user(db, user_id=current_user.id)
-    if not success:
+    try:
+        success = deactivate_user(db, user_id=current_user.id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete account"
+            )
+        
+        return {"message": "Account deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting account: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete account"
         )
-    
-    return {"message": "Account deleted successfully"}
 
 
 @router.post("/verify-email")

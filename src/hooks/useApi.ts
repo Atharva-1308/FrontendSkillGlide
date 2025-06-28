@@ -33,7 +33,7 @@ export function useApi<T = any>(
       onSuccess?.(result);
       return result;
     } catch (error: any) {
-      const errorMessage = error.message || 'An error occurred';
+      const errorMessage = error.response?.data?.detail || error.message || 'An error occurred';
       setState(prev => ({ ...prev, loading: false, error: errorMessage }));
       onError?.(errorMessage);
       throw error;
@@ -74,7 +74,7 @@ export function useMutation<T = any, P = any>(
       onSuccess?.(result);
       return result;
     } catch (error: any) {
-      const errorMessage = error.message || 'An error occurred';
+      const errorMessage = error.response?.data?.detail || error.message || 'An error occurred';
       setState(prev => ({ ...prev, loading: false, error: errorMessage }));
       onError?.(errorMessage);
       throw error;
