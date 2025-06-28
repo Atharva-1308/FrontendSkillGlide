@@ -284,7 +284,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <p className="text-sm text-gray-600 dark:text-gray-400">
             {mode === 'login' ? "Don't have a SkillGlide account?" : 'Already have a SkillGlide account?'}
             <button
-              onClick={switchMode}
+              onClick={mode === 'login' ? handleSignUpClick : switchMode}
               className="ml-1 text-blue-600 dark:text-blue-400 hover:underline font-medium transition-colors"
               disabled={isSubmitting}
             >
