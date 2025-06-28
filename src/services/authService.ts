@@ -36,7 +36,8 @@ class AuthService {
       
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Login failed');
+      const errorMessage = error.response?.data?.detail || 'Login failed. Please check your credentials.';
+      throw new Error(errorMessage);
     }
   }
 
@@ -51,27 +52,38 @@ class AuthService {
       
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Registration failed');
+      const errorMessage = error.response?.data?.detail || 'Registration failed. Please try again.';
+      throw new Error(errorMessage);
     }
   }
 
   logout(): void {
-    localStorage.removeItem('skillglide-access-token');
-    localStorage.removeItem('skillglide-refresh-token');
-    localStorage.removeItem('skillglide-user');
+    try {
+      localStorage.removeItem('skillglide-access-token');
+      localStorage.removeItem('skillglide-refresh-token');
+      localStorage.removeItem('skillglide-user');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   }
 
   getCurrentUser(): User | null {
     try {
       const userStr = localStorage.getItem('skillglide-user');
       return userStr ? JSON.parse(userStr) : null;
-    } catch {
+    } catch (error) {
+      console.error('Error getting current user:', error);
       return null;
     }
   }
 
   getAccessToken(): string | null {
-    return localStorage.getItem('skillglide-access-token');
+    try {
+      return localStorage.getItem('skillglide-access-token');
+    } catch (error) {
+      console.error('Error getting access token:', error);
+      return null;
+    }
   }
 
   isAuthenticated(): boolean {

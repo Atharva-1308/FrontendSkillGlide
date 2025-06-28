@@ -31,9 +31,10 @@ class JobService {
   async getJobs(filters?: Partial<JobFilters>): Promise<JobResponse[]> {
     try {
       const response = await api.get<JobResponse[]>('/jobs', filters);
-      return response.data;
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to fetch jobs');
+      console.error('Error fetching jobs:', error);
+      return []; // Return empty array instead of throwing
     }
   }
 
@@ -42,7 +43,8 @@ class JobService {
       const response = await api.get<JobResponse>(`/jobs/${jobId}`);
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to fetch job');
+      const errorMessage = error.response?.data?.detail || 'Failed to fetch job details';
+      throw new Error(errorMessage);
     }
   }
 
@@ -51,16 +53,18 @@ class JobService {
       const response = await api.post(`/jobs/${jobId}/apply`, data);
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to apply for job');
+      const errorMessage = error.response?.data?.detail || 'Failed to apply for job';
+      throw new Error(errorMessage);
     }
   }
 
   async getMyApplications(): Promise<any[]> {
     try {
       const response = await api.get('/jobs/applications/me');
-      return response.data;
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to fetch applications');
+      console.error('Error fetching applications:', error);
+      return [];
     }
   }
 }

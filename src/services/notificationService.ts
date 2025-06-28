@@ -18,9 +18,10 @@ class NotificationService {
   async getNotifications(): Promise<NotificationResponse[]> {
     try {
       const response = await api.get<NotificationResponse[]>('/notifications/');
-      return response.data;
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to fetch notifications');
+      console.error('Error fetching notifications:', error);
+      return [];
     }
   }
 
@@ -31,7 +32,8 @@ class NotificationService {
       });
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to mark notification as read');
+      const errorMessage = error.response?.data?.detail || 'Failed to mark notification as read';
+      throw new Error(errorMessage);
     }
   }
 
@@ -39,7 +41,8 @@ class NotificationService {
     try {
       await api.post('/notifications/mark-all-read');
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to mark all notifications as read');
+      console.error('Error marking all notifications as read:', error);
+      // Don't throw error for this operation
     }
   }
 
@@ -47,7 +50,8 @@ class NotificationService {
     try {
       await api.delete(`/notifications/${notificationId}`);
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to delete notification');
+      const errorMessage = error.response?.data?.detail || 'Failed to delete notification';
+      throw new Error(errorMessage);
     }
   }
 
@@ -56,7 +60,8 @@ class NotificationService {
       const response = await api.get<{ count: number }>('/notifications/unread-count');
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to fetch unread count');
+      console.error('Error fetching unread count:', error);
+      return { count: 0 };
     }
   }
 }

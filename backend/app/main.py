@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 import time
 import logging
 from app.core.config import settings
@@ -14,11 +15,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Create database tables
-user.Base.metadata.create_all(bind=engine)
-job.Base.metadata.create_all(bind=engine)
-resume.Base.metadata.create_all(bind=engine)
-notification.Base.metadata.create_all(bind=engine)
-company.Base.metadata.create_all(bind=engine)
+try:
+    user.Base.metadata.create_all(bind=engine)
+    job.Base.metadata.create_all(bind=engine)
+    resume.Base.metadata.create_all(bind=engine)
+    notification.Base.metadata.create_all(bind=engine)
+    company.Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created successfully")
+except Exception as e:
+    logger.error(f"Error creating database tables: {e}")
 
 # Create FastAPI app
 app = FastAPI(
@@ -33,7 +38,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://localhost:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,10 +56,29 @@ if settings.ENVIRONMENT == "production":
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
     start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
+    try:
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        response.headers["X-Process-Time"] = str(process_time)
+        return response
+    except Exception as e:
+        logger.error(f"Request processing error: {e}")
+        process_time = time.time() - start_time
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"},
+            headers={"X-Process-Time": str(process_time)}
+        )
+
+
+# Validation error handler
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"Validation error: {exc}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Validation error", "errors": exc.errors()}
+    )
 
 
 # Global exception handler
@@ -67,14 +91,43 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
+# HTTP exception handler
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
+
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "healthy",
-        "version": settings.VERSION,
-        "environment": settings.ENVIRONMENT
-    }
+    try:
+        # Test database connection
+        from app.db.database import SessionLocal
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        
+        return {
+            "status": "healthy",
+            "version": settings.VERSION,
+            "environment": settings.ENVIRONMENT,
+            "database": "connected"
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "unhealthy",
+                "version": settings.VERSION,
+                "environment": settings.ENVIRONMENT,
+                "database": "disconnected",
+                "error": str(e)
+            }
+        )
 
 
 # Root endpoint
@@ -83,7 +136,8 @@ async def root():
     return {
         "message": "Welcome to SkillGlide API",
         "version": settings.VERSION,
-        "docs": f"{settings.API_V1_STR}/docs"
+        "docs": f"{settings.API_V1_STR}/docs",
+        "status": "running"
     }
 
 

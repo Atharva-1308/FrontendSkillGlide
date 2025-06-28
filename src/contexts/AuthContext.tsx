@@ -40,8 +40,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const token = authService.getAccessToken();
         if (token) {
           // Try to get fresh user data from API
-          const userData = await userService.getCurrentUser();
-          setUser(userData);
+          try {
+            const userData = await userService.getCurrentUser();
+            setUser(userData);
+          } catch (error) {
+            // If API call fails, fallback to stored user data
+            const storedUser = authService.getCurrentUser();
+            if (storedUser) {
+              setUser(storedUser);
+            } else {
+              // Clear invalid tokens
+              authService.logout();
+            }
+          }
         } else {
           // Fallback to stored user data
           const storedUser = authService.getCurrentUser();
@@ -101,7 +112,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Failed to refresh user data:', error);
       // If refresh fails, user might need to re-authenticate
-      logout();
+      const storedUser = authService.getCurrentUser();
+      if (!storedUser) {
+        logout();
+      }
     }
   };
 

@@ -7,16 +7,26 @@ class UserService {
       const response = await api.get<User>('/users/me');
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to fetch user profile');
+      const errorMessage = error.response?.data?.detail || 'Failed to fetch user profile';
+      throw new Error(errorMessage);
     }
   }
 
   async updateProfile(userData: Partial<User>): Promise<User> {
     try {
       const response = await api.put<User>('/users/me', userData);
+      
+      // Update stored user data
+      const currentUser = localStorage.getItem('skillglide-user');
+      if (currentUser) {
+        const updatedUser = { ...JSON.parse(currentUser), ...response.data };
+        localStorage.setItem('skillglide-user', JSON.stringify(updatedUser));
+      }
+      
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to update profile');
+      const errorMessage = error.response?.data?.detail || 'Failed to update profile';
+      throw new Error(errorMessage);
     }
   }
 
@@ -28,15 +38,20 @@ class UserService {
       const response = await api.upload<{ avatar_url: string }>('/upload/avatar', formData);
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to upload avatar');
+      const errorMessage = error.response?.data?.detail || 'Failed to upload avatar';
+      throw new Error(errorMessage);
     }
   }
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
     try {
-      await api.post('/users/change-password', { current_password: currentPassword, new_password: newPassword });
+      await api.post('/users/change-password', { 
+        current_password: currentPassword, 
+        new_password: newPassword 
+      });
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to change password');
+      const errorMessage = error.response?.data?.detail || 'Failed to change password';
+      throw new Error(errorMessage);
     }
   }
 }
