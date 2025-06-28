@@ -6,6 +6,8 @@ import { Badge } from '../ui/Badge';
 import { Input } from '../ui/Input';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { notificationService, type NotificationResponse } from '../../services/notificationService';
+import { useApi } from '../../hooks/useApi';
 
 interface NotificationsPanelProps {
   isOpen: boolean;
@@ -13,11 +15,20 @@ interface NotificationsPanelProps {
 }
 
 export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose }) => {
-  const { user, isEmployer, isJobSeeker } = useAuth();
+  const { user } = useAuth();
   const { theme } = useTheme();
   const [filter, setFilter] = useState<'all' | 'unread' | 'important'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
+
+  // Fetch notifications when panel opens
+  const { loading, error, refetch } = useApi(
+    () => notificationService.getNotifications(),
+    {
+      immediate: isOpen,
+      onSuccess: (data) => setNotifications(data),
+    }
+  );
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -75,29 +86,44 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
     return date.toLocaleDateString();
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(notification =>
-        notification.id === id ? { ...notification, isRead: true } : notification
-      )
-    );
+  const markAsRead = async (id: number) => {
+    try {
+      await notificationService.markAsRead(id);
+      setNotifications(prev =>
+        prev.map(notification =>
+          notification.id === id ? { ...notification, is_read: true } : notification
+        )
+      );
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notification => ({ ...notification, isRead: true }))
-    );
+  const markAllAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(prev =>
+        prev.map(notification => ({ ...notification, is_read: true }))
+      );
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
   };
 
-  const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
+  const deleteNotification = async (id: number) => {
+    try {
+      await notificationService.deleteNotification(id);
+      setNotifications(prev => prev.filter(notification => notification.id !== id));
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+    }
   };
 
   const filteredNotifications = notifications.filter(notification => {
     const matchesFilter = 
       filter === 'all' || 
-      (filter === 'unread' && !notification.isRead) ||
-      (filter === 'important' && notification.isImportant);
+      (filter === 'unread' && !notification.is_read) ||
+      (filter === 'important' && notification.is_important);
     
     const matchesSearch = 
       searchQuery === '' ||
@@ -107,7 +133,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
     return matchesFilter && matchesSearch;
   });
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (!isOpen) return null;
 
@@ -208,7 +234,35 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
 
         {/* Notifications List */}
         <div className="max-h-96 overflow-y-auto custom-scrollbar">
-          {filteredNotifications.length === 0 ? (
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+              <p className={`${
+                theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+              }`}>
+                Loading notifications...
+              </p>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center">
+              <Bell className={`w-12 h-12 mx-auto mb-4 ${
+                theme === 'light' ? 'text-red-400' : 'text-red-600'
+              }`} />
+              <h3 className={`text-lg font-medium mb-2 ${
+                theme === 'light' ? 'text-gray-900' : 'text-white'
+              }`}>
+                Failed to load notifications
+              </h3>
+              <p className={`${
+                theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+              } mb-4`}>
+                {error}
+              </p>
+              <Button variant="primary" size="sm" onClick={refetch}>
+                Try Again
+              </Button>
+            </div>
+          ) : filteredNotifications.length === 0 ? (
             <div className="p-8 text-center">
               <Bell className={`w-12 h-12 mx-auto mb-4 ${
                 theme === 'light' ? 'text-gray-400' : 'text-gray-600'
@@ -230,28 +284,19 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
                 <div
                   key={notification.id}
                   className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer group ${
-                    !notification.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
+                    !notification.is_read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
                   }`}
                   onClick={() => markAsRead(notification.id)}
                 >
                   <div className="flex items-start space-x-3">
                     {/* Icon */}
-                    <div className={`w-10 h-10 bg-gradient-to-br ${getNotificationColor(notification.type)} rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    <div className={`w-10 h-10 bg-gradient-to-br ${getNotificationColor(notification.notification_type)} rounded-xl flex items-center justify-center flex-shrink-0 ${
                       theme === 'dark-neon' ? 'shadow-lg shadow-blue-500/25' : 'shadow-md'
                     }`}>
                       <div className="text-white">
-                        {getNotificationIcon(notification.type)}
+                        {getNotificationIcon(notification.notification_type)}
                       </div>
                     </div>
-
-                    {/* Avatar for candidate notifications */}
-                    {notification.metadata?.avatar && (
-                      <img
-                        src={notification.metadata.avatar}
-                        alt={notification.metadata.candidateName}
-                        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                      />
-                    )}
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
@@ -263,10 +308,10 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
                             }`}>
                               {notification.title}
                             </h3>
-                            {!notification.isRead && (
+                            {!notification.is_read && (
                               <div className="w-2 h-2 bg-blue-500 rounded-full" />
                             )}
-                            {notification.isImportant && (
+                            {notification.is_important && (
                               <Star className="w-4 h-4 text-yellow-500 fill-current" />
                             )}
                           </div>
@@ -275,34 +320,13 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
                           }`}>
                             {notification.message}
                           </p>
-                          
-                          {/* Metadata */}
-                          {notification.metadata && (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {notification.metadata.companyName && (
-                                <Badge variant="outline" size="sm">
-                                  {notification.metadata.companyName}
-                                </Badge>
-                              )}
-                              {notification.metadata.jobTitle && (
-                                <Badge variant="outline" size="sm">
-                                  {notification.metadata.jobTitle}
-                                </Badge>
-                              )}
-                              {notification.metadata.interviewDate && (
-                                <Badge variant="warning" size="sm">
-                                  {notification.metadata.interviewDate}
-                                </Badge>
-                              )}
-                            </div>
-                          )}
                         </div>
                         
                         <div className="flex items-center space-x-2 ml-4">
                           <span className={`text-xs ${
                             theme === 'light' ? 'text-gray-500' : 'text-gray-500'
                           }`}>
-                            {formatTimestamp(notification.timestamp)}
+                            {formatTimestamp(notification.created_at)}
                           </span>
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button

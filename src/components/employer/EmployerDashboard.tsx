@@ -5,6 +5,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { LoadingSpinner } from '../common/LoadingSpinner';
 
 interface EmployerDashboardProps {
   onNavigate: (view: 'dashboard' | 'post-job' | 'jobs' | 'profile') => void;
@@ -13,107 +14,45 @@ interface EmployerDashboardProps {
 export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate }) => {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const [loading, setLoading] = React.useState(false);
 
   const stats = [
     {
       title: 'Active Jobs',
-      value: '12',
-      change: '+3 this month',
+      value: '0',
+      change: '0 this month',
       icon: <Briefcase className="w-6 h-6" />,
       color: 'from-blue-500 to-cyan-500',
       trend: 'up'
     },
     {
       title: 'Total Applications',
-      value: '247',
-      change: '+18 this week',
+      value: '0',
+      change: '0 this week',
       icon: <Users className="w-6 h-6" />,
       color: 'from-green-500 to-emerald-500',
       trend: 'up'
     },
     {
       title: 'Profile Views',
-      value: '1,834',
-      change: '+12% vs last month',
+      value: '0',
+      change: '0% vs last month',
       icon: <Eye className="w-6 h-6" />,
       color: 'from-purple-500 to-pink-500',
       trend: 'up'
     },
     {
       title: 'Hired This Month',
-      value: '8',
-      change: '2 pending offers',
+      value: '0',
+      change: '0 pending offers',
       icon: <TrendingUp className="w-6 h-6" />,
       color: 'from-orange-500 to-red-500',
       trend: 'up'
     }
   ];
 
-  const recentJobs = [
-    {
-      id: '1',
-      title: 'Senior Frontend Developer',
-      location: 'Bangalore, India',
-      type: 'Full-time',
-      salary: '₹80,000 - ₹1,20,000',
-      applications: 23,
-      postedAt: '2 days ago',
-      status: 'active'
-    },
-    {
-      id: '2',
-      title: 'Product Manager',
-      location: 'Mumbai, India',
-      type: 'Full-time',
-      salary: '₹1,50,000 - ₹2,00,000',
-      applications: 15,
-      postedAt: '5 days ago',
-      status: 'active'
-    },
-    {
-      id: '3',
-      title: 'UX Designer',
-      location: 'Remote',
-      type: 'Contract',
-      salary: '₹60,000 - ₹90,000',
-      applications: 31,
-      postedAt: '1 week ago',
-      status: 'paused'
-    }
-  ];
-
-  const recentApplications = [
-    {
-      id: '1',
-      candidateName: 'Priya Sharma',
-      jobTitle: 'Senior Frontend Developer',
-      appliedAt: '2 hours ago',
-      experience: '4 years',
-      skills: ['React', 'TypeScript', 'Node.js'],
-      status: 'new',
-      avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2'
-    },
-    {
-      id: '2',
-      candidateName: 'Rahul Patel',
-      jobTitle: 'Product Manager',
-      appliedAt: '4 hours ago',
-      experience: '6 years',
-      skills: ['Product Strategy', 'Analytics', 'Agile'],
-      status: 'reviewed',
-      avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2'
-    },
-    {
-      id: '3',
-      candidateName: 'Anita Singh',
-      jobTitle: 'UX Designer',
-      appliedAt: '6 hours ago',
-      experience: '3 years',
-      skills: ['Figma', 'User Research', 'Prototyping'],
-      status: 'shortlisted',
-      avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2'
-    }
-  ];
+  const recentJobs = [];
+  const recentApplications = [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -125,6 +64,16 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
       default: return 'default';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center min-h-[600px]">
+          <LoadingSpinner size="lg" text="Loading dashboard data..." />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -204,66 +153,86 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
               </Button>
             </div>
             
-            <div className="space-y-4">
-              {recentJobs.map((job) => (
-                <div key={job.id} className={`p-4 rounded-xl border transition-all hover:shadow-md ${
-                  theme === 'light' 
-                    ? 'border-gray-200 hover:border-gray-300 bg-gray-50' 
-                    : 'border-gray-700 hover:border-gray-600 bg-gray-800'
-                }`}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className={`font-semibold text-lg mb-1 ${
-                        theme === 'light' ? 'text-gray-900' : 'text-white'
-                      }`}>
-                        {job.title}
-                      </h3>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          {job.location}
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-1" />
-                          {job.type}
-                        </div>
-                        <div className="flex items-center">
-                          <DollarSign className="w-4 h-4 mr-1" />
-                          {job.salary}
+            {recentJobs.length > 0 ? (
+              <div className="space-y-4">
+                {recentJobs.map((job: any) => (
+                  <div key={job.id} className={`p-4 rounded-xl border transition-all hover:shadow-md ${
+                    theme === 'light' 
+                      ? 'border-gray-200 hover:border-gray-300 bg-gray-50' 
+                      : 'border-gray-700 hover:border-gray-600 bg-gray-800'
+                  }`}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className={`font-semibold text-lg mb-1 ${
+                          theme === 'light' ? 'text-gray-900' : 'text-white'
+                        }`}>
+                          {job.title}
+                        </h3>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center">
+                            <MapPin className="w-4 h-4 mr-1" />
+                            {job.location}
+                          </div>
+                          <div className="flex items-center">
+                            <Clock className="w-4 h-4 mr-1" />
+                            {job.type}
+                          </div>
+                          <div className="flex items-center">
+                            <DollarSign className="w-4 h-4 mr-1" />
+                            {job.salary}
+                          </div>
                         </div>
                       </div>
+                      
+                      <Badge variant={getStatusColor(job.status)} size="sm" gradient>
+                        {job.status}
+                      </Badge>
                     </div>
-                    <Badge variant={getStatusColor(job.status)} size="sm" gradient>
-                      {job.status}
-                    </Badge>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4 text-sm">
+                        <span className={`flex items-center ${
+                          theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                        }`}>
+                          <Users className="w-4 h-4 mr-1" />
+                          {job.applications} applications
+                        </span>
+                        <span className={`${
+                          theme === 'light' ? 'text-gray-500' : 'text-gray-500'
+                        }`}>
+                          Posted {job.postedAt}
+                        </span>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="ghost" size="sm">
+                          Edit
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          View Applications
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4 text-sm">
-                      <span className={`flex items-center ${
-                        theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                      }`}>
-                        <Users className="w-4 h-4 mr-1" />
-                        {job.applications} applications
-                      </span>
-                      <span className={`${
-                        theme === 'light' ? 'text-gray-500' : 'text-gray-500'
-                      }`}>
-                        Posted {job.postedAt}
-                      </span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm">
-                        Edit
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        View Applications
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+                <Briefcase className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  No job postings yet
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                  Start attracting top talent by posting your first job opening.
+                </p>
+                <Button
+                  variant="primary"
+                  onClick={() => onNavigate('post-job')}
+                  icon={<Plus className="w-4 h-4" />}
+                >
+                  Post Your First Job
+                </Button>
+              </div>
+            )}
           </Card>
         </div>
 
@@ -281,64 +250,59 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
               </Button>
             </div>
             
-            <div className="space-y-4">
-              {recentApplications.map((application) => (
-                <div key={application.id} className={`p-4 rounded-xl border transition-all hover:shadow-md cursor-pointer ${
-                  theme === 'light' 
-                    ? 'border-gray-200 hover:border-gray-300 bg-gray-50' 
-                    : 'border-gray-700 hover:border-gray-600 bg-gray-800'
-                }`}>
-                  <div className="flex items-start space-x-3">
-                    <img
-                      src={application.avatar}
-                      alt={application.candidateName}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className={`font-semibold text-sm ${
-                          theme === 'light' ? 'text-gray-900' : 'text-white'
-                        }`}>
-                          {application.candidateName}
-                        </h3>
-                        <Badge variant={getStatusColor(application.status)} size="sm">
-                          {application.status}
-                        </Badge>
-                      </div>
-                      <p className={`text-xs mb-2 ${
-                        theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                      }`}>
-                        Applied for {application.jobTitle}
-                      </p>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className={`${
-                          theme === 'light' ? 'text-gray-500' : 'text-gray-500'
-                        }`}>
-                          {application.experience} exp
-                        </span>
-                        <span className={`${
-                          theme === 'light' ? 'text-gray-500' : 'text-gray-500'
-                        }`}>
-                          {application.appliedAt}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {application.skills.slice(0, 2).map((skill, index) => (
-                          <Badge key={index} variant="outline" size="sm" className="text-xs">
-                            {skill}
+            {recentApplications.length > 0 ? (
+              <div className="space-y-4">
+                {recentApplications.map((application: any) => (
+                  <div key={application.id} className={`p-4 rounded-xl border transition-all hover:shadow-md cursor-pointer ${
+                    theme === 'light' 
+                      ? 'border-gray-200 hover:border-gray-300 bg-gray-50' 
+                      : 'border-gray-700 hover:border-gray-600 bg-gray-800'
+                  }`}>
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className={`font-semibold text-sm ${
+                            theme === 'light' ? 'text-gray-900' : 'text-white'
+                          }`}>
+                            {application.candidateName}
+                          </h3>
+                          <Badge variant={getStatusColor(application.status)} size="sm">
+                            {application.status}
                           </Badge>
-                        ))}
-                        {application.skills.length > 2 && (
-                          <Badge variant="outline" size="sm" className="text-xs">
-                            +{application.skills.length - 2}
-                          </Badge>
-                        )}
+                        </div>
+                        <p className={`text-xs mb-2 ${
+                          theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                        }`}>
+                          Applied for {application.jobTitle}
+                        </p>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className={`${
+                            theme === 'light' ? 'text-gray-500' : 'text-gray-500'
+                          }`}>
+                            {application.experience} exp
+                          </span>
+                          <span className={`${
+                            theme === 'light' ? 'text-gray-500' : 'text-gray-500'
+                          }`}>
+                            {application.appliedAt}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+                <Users className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  No applications yet
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4 max-w-md mx-auto">
+                  Post a job to start receiving applications from qualified candidates.
+                </p>
+              </div>
+            )}
           </Card>
 
           {/* Quick Actions */}
@@ -416,7 +380,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
               <h3 className={`text-2xl font-bold ${
                 theme === 'light' ? 'text-gray-900' : 'text-white'
               }`}>
-                85%
+                0%
               </h3>
               <p className={`text-sm ${
                 theme === 'light' ? 'text-gray-600' : 'text-gray-400'
@@ -434,7 +398,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
               <h3 className={`text-2xl font-bold ${
                 theme === 'light' ? 'text-gray-900' : 'text-white'
               }`}>
-                12 days
+                0 days
               </h3>
               <p className={`text-sm ${
                 theme === 'light' ? 'text-gray-600' : 'text-gray-400'
@@ -452,7 +416,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
               <h3 className={`text-2xl font-bold ${
                 theme === 'light' ? 'text-gray-900' : 'text-white'
               }`}>
-                92%
+                0%
               </h3>
               <p className={`text-sm ${
                 theme === 'light' ? 'text-gray-600' : 'text-gray-400'
