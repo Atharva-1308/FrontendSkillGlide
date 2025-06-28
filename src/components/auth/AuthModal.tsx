@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mail, Lock, User, Building, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Mail, Lock, User, Building, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
@@ -292,20 +292,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </button>
           </p>
         </div>
-
-        {/* Success indicator for demo accounts */}
-        {mode === 'login' && (
-          <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="flex items-start space-x-2">
-              <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-green-700 dark:text-green-300">
-                <p className="font-medium">Demo Accounts Available:</p>
-                <p>Job Seeker: john.doe@skillglide.com / password123</p>
-                <p>Employer: hr@techcorp.com / employer123</p>
-              </div>
-            </div>
-          </div>
-        )}
       </Card>
     </div>
   );

@@ -3,7 +3,6 @@ import { ArrowRight, Play, Star, Users, Briefcase, Award, Zap, CheckCircle, Tren
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
-import { TestAccountsInfo } from './TestAccountsInfo';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface HomePageProps {
@@ -243,9 +242,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onGetStarted, onSignIn }) =>
           </div>
         </div>
       </section>
-
-      {/* Test Accounts Section */}
-      <TestAccountsInfo />
 
       {/* Enhanced Features Section */}
       <section className={`py-20 ${

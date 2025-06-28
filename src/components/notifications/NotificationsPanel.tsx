@@ -12,203 +12,14 @@ interface NotificationsPanelProps {
   onClose: () => void;
 }
 
-interface Notification {
-  id: string;
-  type: 'job_match' | 'application_update' | 'message' | 'interview' | 'profile_view' | 'job_alert' | 'system';
-  title: string;
-  message: string;
-  timestamp: Date;
-  isRead: boolean;
-  isImportant: boolean;
-  actionUrl?: string;
-  metadata?: {
-    companyName?: string;
-    jobTitle?: string;
-    candidateName?: string;
-    interviewDate?: string;
-    avatar?: string;
-  };
-}
-
 export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose }) => {
   const { user, isEmployer, isJobSeeker } = useAuth();
   const { theme } = useTheme();
   const [filter, setFilter] = useState<'all' | 'unread' | 'important'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [notifications, setNotifications] = useState<any[]>([]);
 
-  // Mock notifications data based on user type
-  const getNotifications = (): Notification[] => {
-    if (isJobSeeker) {
-      return [
-        {
-          id: '1',
-          type: 'job_match',
-          title: 'New Job Match Found!',
-          message: 'Senior Frontend Developer at TechCorp matches your profile perfectly (95% match)',
-          timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-          isRead: false,
-          isImportant: true,
-          metadata: {
-            companyName: 'TechCorp',
-            jobTitle: 'Senior Frontend Developer'
-          }
-        },
-        {
-          id: '2',
-          type: 'application_update',
-          title: 'Application Status Update',
-          message: 'Your application for Product Manager at StartupXYZ has been shortlisted for interview',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-          isRead: false,
-          isImportant: true,
-          metadata: {
-            companyName: 'StartupXYZ',
-            jobTitle: 'Product Manager'
-          }
-        },
-        {
-          id: '3',
-          type: 'interview',
-          title: 'Interview Scheduled',
-          message: 'Interview scheduled for UX Designer position at DesignCo on March 25, 2024 at 2:00 PM',
-          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-          isRead: true,
-          isImportant: true,
-          metadata: {
-            companyName: 'DesignCo',
-            jobTitle: 'UX Designer',
-            interviewDate: 'March 25, 2024 at 2:00 PM'
-          }
-        },
-        {
-          id: '4',
-          type: 'profile_view',
-          title: 'Profile Viewed',
-          message: 'Your profile was viewed by 3 recruiters in the last 24 hours',
-          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-          isRead: true,
-          isImportant: false
-        },
-        {
-          id: '5',
-          type: 'job_alert',
-          title: 'New Jobs Alert',
-          message: '5 new React Developer jobs posted in Bangalore that match your preferences',
-          timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
-          isRead: true,
-          isImportant: false
-        },
-        {
-          id: '6',
-          type: 'message',
-          title: 'Message from Recruiter',
-          message: 'Sarah from TechCorp sent you a message about the Frontend Developer position',
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-          isRead: true,
-          isImportant: false,
-          metadata: {
-            companyName: 'TechCorp',
-            candidateName: 'Sarah Wilson'
-          }
-        },
-        {
-          id: '7',
-          type: 'system',
-          title: 'Resume Updated Successfully',
-          message: 'Your resume has been updated with new skills and experience',
-          timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-          isRead: true,
-          isImportant: false
-        }
-      ];
-    } else if (isEmployer) {
-      return [
-        {
-          id: '1',
-          type: 'application_update',
-          title: 'New Application Received',
-          message: 'Priya Sharma applied for Senior Frontend Developer position',
-          timestamp: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
-          isRead: false,
-          isImportant: true,
-          metadata: {
-            candidateName: 'Priya Sharma',
-            jobTitle: 'Senior Frontend Developer',
-            avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2'
-          }
-        },
-        {
-          id: '2',
-          type: 'application_update',
-          title: 'High-Quality Candidate',
-          message: 'Rahul Patel (95% match) applied for Product Manager role',
-          timestamp: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
-          isRead: false,
-          isImportant: true,
-          metadata: {
-            candidateName: 'Rahul Patel',
-            jobTitle: 'Product Manager',
-            avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2'
-          }
-        },
-        {
-          id: '3',
-          type: 'interview',
-          title: 'Interview Reminder',
-          message: 'Interview with Anita Singh for UX Designer position in 2 hours',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-          isRead: true,
-          isImportant: true,
-          metadata: {
-            candidateName: 'Anita Singh',
-            jobTitle: 'UX Designer',
-            interviewDate: 'Today at 3:00 PM'
-          }
-        },
-        {
-          id: '4',
-          type: 'job_alert',
-          title: 'Job Performance Update',
-          message: 'Your Senior Frontend Developer job has received 23 applications this week',
-          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-          isRead: true,
-          isImportant: false,
-          metadata: {
-            jobTitle: 'Senior Frontend Developer'
-          }
-        },
-        {
-          id: '5',
-          type: 'message',
-          title: 'Candidate Message',
-          message: 'John Doe sent a follow-up message about the interview process',
-          timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8 hours ago
-          isRead: true,
-          isImportant: false,
-          metadata: {
-            candidateName: 'John Doe'
-          }
-        },
-        {
-          id: '6',
-          type: 'system',
-          title: 'Job Posted Successfully',
-          message: 'Your new job posting for Backend Developer is now live',
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-          isRead: true,
-          isImportant: false,
-          metadata: {
-            jobTitle: 'Backend Developer'
-          }
-        }
-      ];
-    }
-    return [];
-  };
-
-  const [notifications, setNotifications] = useState<Notification[]>(getNotifications());
-
-  const getNotificationIcon = (type: Notification['type']) => {
+  const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'job_match':
       case 'job_alert':
@@ -228,7 +39,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
     }
   };
 
-  const getNotificationColor = (type: Notification['type']) => {
+  const getNotificationColor = (type: string) => {
     switch (type) {
       case 'job_match':
         return 'from-blue-500 to-cyan-500';
@@ -249,9 +60,10 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
     }
   };
 
-  const formatTimestamp = (timestamp: Date) => {
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
     const now = new Date();
-    const diffInMs = now.getTime() - timestamp.getTime();
+    const diffInMs = now.getTime() - date.getTime();
     const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
@@ -260,7 +72,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInHours < 24) return `${diffInHours}h ago`;
     if (diffInDays < 7) return `${diffInDays}d ago`;
-    return timestamp.toLocaleDateString();
+    return date.toLocaleDateString();
   };
 
   const markAsRead = (id: string) => {
