@@ -5,6 +5,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
+import { notificationService } from '../../services/notificationService';
+import { useApi } from '../../hooks/useApi';
 
 interface HeaderProps {
   onNavigate?: (view: 'home' | 'jobs' | 'resume' | 'profile' | 'dashboard' | 'post-job' | 'candidates') => void;
@@ -24,8 +26,19 @@ export const Header: React.FC<HeaderProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   
   const profileRef = useRef<HTMLDivElement>(null);
+
+  // Fetch unread notification count
+  const { data: unreadData } = useApi(
+    () => notificationService.getUnreadCount(),
+    {
+      immediate: isAuthenticated,
+      onSuccess: (data) => setUnreadCount(data.count),
+      onError: () => setUnreadCount(0),
+    }
+  );
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -91,9 +104,6 @@ export const Header: React.FC<HeaderProps> = ({
     logout();
   };
 
-  // Mock notification count - in real app this would come from context/API
-  const unreadNotificationCount = isAuthenticated ? 3 : 0;
-
   return (
     <>
       <header className={`sticky top-0 z-50 transition-all duration-300 border-b backdrop-blur-lg ${
@@ -151,7 +161,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={() => setIsNotificationsOpen(true)}
                     icon={<Bell className="w-4 h-4" />}
                   >
-                    {unreadNotificationCount > 0 && (
+                    {unreadCount > 0 && (
                       <Badge 
                         variant="error" 
                         size="sm" 
@@ -159,7 +169,7 @@ export const Header: React.FC<HeaderProps> = ({
                           theme === 'dark-neon' ? 'shadow-lg shadow-red-500/25' : ''
                         }`}
                       >
-                        {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                        {unreadCount > 9 ? '9+' : unreadCount}
                       </Badge>
                     )}
                   </Button>

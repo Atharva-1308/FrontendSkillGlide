@@ -6,13 +6,15 @@ import { Input } from '../ui/Input';
 import { Badge } from '../ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { userService } from '../../services/userService';
+import { useApi } from '../../hooks/useApi';
 
 interface ProfilePageProps {
   onNavigate?: (view: string) => void;
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
-  const { user, isEmployer, isJobSeeker } = useAuth();
+  const { user, isEmployer, isJobSeeker, refreshUser } = useAuth();
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
@@ -22,28 +24,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
     // Personal Info
     name: user?.name || '',
     email: user?.email || '',
-    phone: '+91 98765 43210',
-    location: 'Bangalore, India',
-    bio: 'Passionate software developer with 5+ years of experience in building scalable web applications.',
-    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=2',
+    phone: user?.phone || '',
+    location: user?.location || '',
+    bio: user?.bio || '',
+    avatar: user?.avatar_url || '',
     
     // Professional Info (Job Seeker)
-    currentRole: 'Senior Frontend Developer',
-    experience: '5 years',
-    skills: ['React', 'TypeScript', 'Node.js', 'Python', 'AWS', 'Docker', 'GraphQL'],
-    expectedSalary: '₹80,000 - ₹1,20,000',
-    workMode: 'Hybrid',
-    jobType: 'Full-time',
-    linkedIn: 'https://linkedin.com/in/johndoe',
-    github: 'https://github.com/johndoe',
-    portfolio: 'https://johndoe.dev',
-    
-    // Company Info (Employer)
-    companyName: (user as any)?.company || 'TechCorp Solutions',
-    companyWebsite: 'https://techcorp.com',
-    companySize: '201-500 employees',
-    industry: 'Technology',
-    companyDescription: 'Leading technology company focused on innovative solutions.',
+    experience_years: user?.experience_years || 0,
+    expected_salary_min: user?.expected_salary_min || 0,
+    expected_salary_max: user?.expected_salary_max || 0,
+    preferred_job_type: user?.preferred_job_type || '',
+    preferred_work_mode: user?.preferred_work_mode || '',
+    linkedin_url: user?.linkedin_url || '',
+    github_url: user?.github_url || '',
+    portfolio_url: user?.portfolio_url || '',
     
     // Settings
     emailNotifications: true,
@@ -55,13 +49,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
   const tabs = isJobSeeker ? [
     { id: 'personal', name: 'Personal Info', icon: User },
     { id: 'professional', name: 'Professional', icon: Briefcase },
-    { id: 'skills', name: 'Skills & Portfolio', icon: Award },
     { id: 'preferences', name: 'Job Preferences', icon: Star },
     { id: 'privacy', name: 'Privacy & Settings', icon: Settings },
   ] : [
     { id: 'personal', name: 'Personal Info', icon: User },
     { id: 'company', name: 'Company Info', icon: Building },
-    { id: 'hiring', name: 'Hiring Preferences', icon: Star },
     { id: 'privacy', name: 'Privacy & Settings', icon: Settings },
   ];
 
@@ -69,31 +61,32 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
-  const addSkill = (skill: string) => {
-    if (skill.trim() && !profileData.skills.includes(skill.trim())) {
-      updateProfileData('skills', [...profileData.skills, skill.trim()]);
-    }
-  };
-
-  const removeSkill = (skillToRemove: string) => {
-    updateProfileData('skills', profileData.skills.filter(skill => skill !== skillToRemove));
-  };
-
   const handleSave = async () => {
     setIsSaving(true);
     setSaveMessage('');
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await userService.updateProfile({
+        name: profileData.name,
+        phone: profileData.phone,
+        location: profileData.location,
+        bio: profileData.bio,
+        experience_years: profileData.experience_years,
+        expected_salary_min: profileData.expected_salary_min,
+        expected_salary_max: profileData.expected_salary_max,
+        preferred_job_type: profileData.preferred_job_type,
+        preferred_work_mode: profileData.preferred_work_mode,
+        linkedin_url: profileData.linkedin_url,
+        github_url: profileData.github_url,
+        portfolio_url: profileData.portfolio_url,
+      });
       
+      await refreshUser();
       setIsEditing(false);
       setSaveMessage('Profile updated successfully!');
       
       // Clear success message after 3 seconds
       setTimeout(() => setSaveMessage(''), 3000);
-      
-      console.log('Profile saved:', profileData);
     } catch (error) {
       setSaveMessage('Failed to save profile. Please try again.');
     } finally {
@@ -104,7 +97,27 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
   const handleCancel = () => {
     setIsEditing(false);
     setSaveMessage('');
-    // Reset form data if needed
+    // Reset form data
+    setProfileData({
+      name: user?.name || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      location: user?.location || '',
+      bio: user?.bio || '',
+      avatar: user?.avatar_url || '',
+      experience_years: user?.experience_years || 0,
+      expected_salary_min: user?.expected_salary_min || 0,
+      expected_salary_max: user?.expected_salary_max || 0,
+      preferred_job_type: user?.preferred_job_type || '',
+      preferred_work_mode: user?.preferred_work_mode || '',
+      linkedin_url: user?.linkedin_url || '',
+      github_url: user?.github_url || '',
+      portfolio_url: user?.portfolio_url || '',
+      emailNotifications: true,
+      jobAlerts: true,
+      profileVisibility: 'public',
+      twoFactorAuth: false,
+    });
   };
 
   const renderPersonalInfo = () => (
@@ -112,13 +125,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
       {/* Profile Picture */}
       <div className="flex items-center space-x-6">
         <div className="relative">
-          <img
-            src={profileData.avatar}
-            alt="Profile"
-            className={`w-24 h-24 rounded-full object-cover ${
-              theme === 'dark-neon' ? 'ring-2 ring-cyan-500 shadow-lg shadow-cyan-500/25' : 'ring-2 ring-gray-200 shadow-lg'
-            }`}
-          />
+          {profileData.avatar ? (
+            <img
+              src={profileData.avatar}
+              alt="Profile"
+              className={`w-24 h-24 rounded-full object-cover ${
+                theme === 'dark-neon' ? 'ring-2 ring-cyan-500 shadow-lg shadow-cyan-500/25' : 'ring-2 ring-gray-200 shadow-lg'
+              }`}
+            />
+          ) : (
+            <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold ${
+              theme === 'dark-neon' ? 'shadow-lg shadow-blue-500/25' : 'shadow-lg'
+            }`}>
+              {user?.name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+          )}
           {isEditing && (
             <button className={`absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors ${
               theme === 'dark-neon' ? 'shadow-lg shadow-blue-500/25' : 'shadow-md'
@@ -167,7 +188,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
           type="email"
           value={profileData.email}
           onChange={(e) => updateProfileData('email', e.target.value)}
-          disabled={!isEditing}
+          disabled={true} // Email should not be editable
           icon={<Mail className="w-4 h-4" />}
           fullWidth
         />
@@ -217,45 +238,26 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
   const renderProfessionalInfo = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Current Role"
-          value={profileData.currentRole}
-          onChange={(e) => updateProfileData('currentRole', e.target.value)}
-          disabled={!isEditing}
-          icon={<Briefcase className="w-4 h-4" />}
-          fullWidth
-        />
-        
         <div>
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'light' ? 'text-gray-700' : 'text-gray-300'
           }`}>
-            Experience Level
+            Years of Experience
           </label>
-          <select
+          <input
+            type="number"
             className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent transition-colors ${
               theme === 'light'
                 ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
             } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700 cursor-not-allowed' : ''}`}
-            value={profileData.experience}
-            onChange={(e) => updateProfileData('experience', e.target.value)}
+            value={profileData.experience_years}
+            onChange={(e) => updateProfileData('experience_years', parseInt(e.target.value) || 0)}
             disabled={!isEditing}
-          >
-            <option value="Fresher">Fresher (0-1 years)</option>
-            <option value="1-2 years">1-2 years</option>
-            <option value="3-5 years">3-5 years</option>
-            <option value="5+ years">5+ years</option>
-          </select>
+            min="0"
+            max="50"
+          />
         </div>
-        
-        <Input
-          label="Expected Salary"
-          value={profileData.expectedSalary}
-          onChange={(e) => updateProfileData('expectedSalary', e.target.value)}
-          disabled={!isEditing}
-          fullWidth
-        />
         
         <div>
           <label className={`block text-sm font-medium mb-2 ${
@@ -269,264 +271,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                 ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
             } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700 cursor-not-allowed' : ''}`}
-            value={profileData.workMode}
-            onChange={(e) => updateProfileData('workMode', e.target.value)}
+            value={profileData.preferred_work_mode}
+            onChange={(e) => updateProfileData('preferred_work_mode', e.target.value)}
             disabled={!isEditing}
           >
-            <option value="Remote">Remote</option>
-            <option value="Hybrid">Hybrid</option>
-            <option value="On-site">On-site</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Social Links */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Input
-          label="LinkedIn Profile"
-          value={profileData.linkedIn}
-          onChange={(e) => updateProfileData('linkedIn', e.target.value)}
-          disabled={!isEditing}
-          icon={<Globe className="w-4 h-4" />}
-          fullWidth
-        />
-        
-        <Input
-          label="GitHub Profile"
-          value={profileData.github}
-          onChange={(e) => updateProfileData('github', e.target.value)}
-          disabled={!isEditing}
-          icon={<Globe className="w-4 h-4" />}
-          fullWidth
-        />
-        
-        <Input
-          label="Portfolio Website"
-          value={profileData.portfolio}
-          onChange={(e) => updateProfileData('portfolio', e.target.value)}
-          disabled={!isEditing}
-          icon={<Globe className="w-4 h-4" />}
-          fullWidth
-        />
-      </div>
-    </div>
-  );
-
-  const renderSkillsPortfolio = () => (
-    <div className="space-y-6">
-      {/* Skills */}
-      <div>
-        <label className={`block text-sm font-medium mb-3 ${
-          theme === 'light' ? 'text-gray-700' : 'text-gray-300'
-        }`}>
-          Skills & Technologies
-        </label>
-        
-        {profileData.skills.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {profileData.skills.map((skill, index) => (
-              <Badge
-                key={index}
-                variant="primary"
-                className={`flex items-center space-x-1 ${isEditing ? 'cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/20' : ''}`}
-                onClick={() => isEditing && removeSkill(skill)}
-              >
-                <span>{skill}</span>
-                {isEditing && <span className="ml-1 hover:bg-white/20 rounded-full">×</span>}
-              </Badge>
-            ))}
-          </div>
-        )}
-        
-        {isEditing && (
-          <div className="flex space-x-2">
-            <Input
-              placeholder="Add a skill (e.g., React, Leadership)"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addSkill((e.target as HTMLInputElement).value);
-                  (e.target as HTMLInputElement).value = '';
-                }
-              }}
-              fullWidth
-            />
-            <Button
-              variant="outline"
-              onClick={() => {
-                const input = document.querySelector('input[placeholder*="Add a skill"]') as HTMLInputElement;
-                if (input && input.value.trim()) {
-                  addSkill(input.value);
-                  input.value = '';
-                }
-              }}
-            >
-              Add
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Resume */}
-      <Card className={`${
-        theme === 'light' 
-          ? 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200' 
-          : 'bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-blue-800'
-      }`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className={`text-lg font-semibold mb-2 ${
-              theme === 'light' ? 'text-blue-900' : 'text-blue-300'
-            }`}>
-              Resume & Documents
-            </h3>
-            <p className={`text-sm ${
-              theme === 'light' ? 'text-blue-700' : 'text-blue-400'
-            }`}>
-              Keep your resume updated to attract the best opportunities
-            </p>
-          </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" size="sm" icon={<Download className="w-4 h-4" />}>
-              Download
-            </Button>
-            <Button variant="primary" size="sm" icon={<Upload className="w-4 h-4" />}>
-              Update Resume
-            </Button>
-          </div>
-        </div>
-      </Card>
-
-      {/* Certifications */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className={`text-lg font-semibold ${
-            theme === 'light' ? 'text-gray-900' : 'text-white'
-          }`}>
-            Certifications
-          </h3>
-          {isEditing && (
-            <Button variant="outline" size="sm" icon={<Plus className="w-4 h-4" />}>
-              Add Certification
-            </Button>
-          )}
-        </div>
-        
-        <div className="space-y-3">
-          {[
-            { name: 'AWS Certified Solutions Architect', issuer: 'Amazon Web Services', date: '2023' },
-            { name: 'React Developer Certification', issuer: 'Meta', date: '2022' }
-          ].map((cert, index) => (
-            <Card key={index} className="flex items-center justify-between hover:shadow-md transition-shadow">
-              <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center ${
-                  theme === 'dark-neon' ? 'shadow-lg shadow-green-500/25' : 'shadow-md'
-                }`}>
-                  <Award className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h4 className={`font-semibold ${
-                    theme === 'light' ? 'text-gray-900' : 'text-white'
-                  }`}>
-                    {cert.name}
-                  </h4>
-                  <p className={`text-sm ${
-                    theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                  }`}>
-                    {cert.issuer} • {cert.date}
-                  </p>
-                </div>
-              </div>
-              {isEditing && (
-                <Button variant="ghost" size="sm" icon={<Trash2 className="w-4 h-4" />} />
-              )}
-            </Card>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderCompanyInfo = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Company Name"
-          value={profileData.companyName}
-          onChange={(e) => updateProfileData('companyName', e.target.value)}
-          disabled={!isEditing}
-          icon={<Building className="w-4 h-4" />}
-          fullWidth
-        />
-        
-        <Input
-          label="Company Website"
-          value={profileData.companyWebsite}
-          onChange={(e) => updateProfileData('companyWebsite', e.target.value)}
-          disabled={!isEditing}
-          icon={<Globe className="w-4 h-4" />}
-          fullWidth
-        />
-        
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${
-            theme === 'light' ? 'text-gray-700' : 'text-gray-300'
-          }`}>
-            Company Size
-          </label>
-          <select
-            className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent transition-colors ${
-              theme === 'light'
-                ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
-                : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-            } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700 cursor-not-allowed' : ''}`}
-            value={profileData.companySize}
-            onChange={(e) => updateProfileData('companySize', e.target.value)}
-            disabled={!isEditing}
-          >
-            <option value="1-10 employees">1-10 employees</option>
-            <option value="11-50 employees">11-50 employees</option>
-            <option value="51-200 employees">51-200 employees</option>
-            <option value="201-500 employees">201-500 employees</option>
-            <option value="501-1000 employees">501-1000 employees</option>
-            <option value="1000+ employees">1000+ employees</option>
+            <option value="">Select work mode</option>
+            <option value="remote">Remote</option>
+            <option value="hybrid">Hybrid</option>
+            <option value="onsite">On-site</option>
           </select>
         </div>
         
-        <Input
-          label="Industry"
-          value={profileData.industry}
-          onChange={(e) => updateProfileData('industry', e.target.value)}
-          disabled={!isEditing}
-          fullWidth
-        />
-      </div>
-
-      <div>
-        <label className={`block text-sm font-medium mb-2 ${
-          theme === 'light' ? 'text-gray-700' : 'text-gray-300'
-        }`}>
-          Company Description
-        </label>
-        <textarea
-          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-colors ${
-            theme === 'light'
-              ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
-              : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-          } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700 cursor-not-allowed' : ''}`}
-          rows={4}
-          value={profileData.companyDescription}
-          onChange={(e) => updateProfileData('companyDescription', e.target.value)}
-          disabled={!isEditing}
-          placeholder="Describe your company, its mission, and what makes it special..."
-        />
-      </div>
-    </div>
-  );
-
-  const renderJobPreferences = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'light' ? 'text-gray-700' : 'text-gray-300'
@@ -539,26 +294,73 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                 ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
             } ${!isEditing ? 'bg-gray-50 dark:bg-gray-700 cursor-not-allowed' : ''}`}
-            value={profileData.jobType}
-            onChange={(e) => updateProfileData('jobType', e.target.value)}
+            value={profileData.preferred_job_type}
+            onChange={(e) => updateProfileData('preferred_job_type', e.target.value)}
             disabled={!isEditing}
           >
-            <option value="Full-time">Full-time</option>
-            <option value="Part-time">Part-time</option>
-            <option value="Contract">Contract</option>
-            <option value="Freelance">Freelance</option>
+            <option value="">Select job type</option>
+            <option value="full-time">Full-time</option>
+            <option value="part-time">Part-time</option>
+            <option value="contract">Contract</option>
+            <option value="freelance">Freelance</option>
+            <option value="internship">Internship</option>
           </select>
         </div>
         
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            label="Expected Salary Min"
+            type="number"
+            value={profileData.expected_salary_min || ''}
+            onChange={(e) => updateProfileData('expected_salary_min', parseInt(e.target.value) || 0)}
+            disabled={!isEditing}
+            fullWidth
+          />
+          <Input
+            label="Expected Salary Max"
+            type="number"
+            value={profileData.expected_salary_max || ''}
+            onChange={(e) => updateProfileData('expected_salary_max', parseInt(e.target.value) || 0)}
+            disabled={!isEditing}
+            fullWidth
+          />
+        </div>
+      </div>
+
+      {/* Social Links */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Input
-          label="Expected Salary Range"
-          value={profileData.expectedSalary}
-          onChange={(e) => updateProfileData('expectedSalary', e.target.value)}
+          label="LinkedIn Profile"
+          value={profileData.linkedin_url}
+          onChange={(e) => updateProfileData('linkedin_url', e.target.value)}
           disabled={!isEditing}
+          icon={<Globe className="w-4 h-4" />}
+          fullWidth
+        />
+        
+        <Input
+          label="GitHub Profile"
+          value={profileData.github_url}
+          onChange={(e) => updateProfileData('github_url', e.target.value)}
+          disabled={!isEditing}
+          icon={<Globe className="w-4 h-4" />}
+          fullWidth
+        />
+        
+        <Input
+          label="Portfolio Website"
+          value={profileData.portfolio_url}
+          onChange={(e) => updateProfileData('portfolio_url', e.target.value)}
+          disabled={!isEditing}
+          icon={<Globe className="w-4 h-4" />}
           fullWidth
         />
       </div>
-      
+    </div>
+  );
+
+  const renderJobPreferences = () => (
+    <div className="space-y-6">
       <Card className={`${
         theme === 'light' 
           ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200' 
@@ -574,72 +376,51 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
             <h4 className={`font-medium mb-2 ${
               theme === 'light' ? 'text-green-800' : 'text-green-400'
             }`}>
-              Preferred Locations
+              Work Mode
             </h4>
-            <div className="flex flex-wrap gap-2">
-              {['Bangalore', 'Mumbai', 'Delhi', 'Remote'].map((location) => (
-                <Badge key={location} variant="success" size="sm">
-                  {location}
-                </Badge>
-              ))}
-            </div>
+            <p className={`text-sm ${
+              theme === 'light' ? 'text-green-700' : 'text-green-300'
+            }`}>
+              {profileData.preferred_work_mode || 'Not specified'}
+            </p>
           </div>
           <div>
             <h4 className={`font-medium mb-2 ${
               theme === 'light' ? 'text-green-800' : 'text-green-400'
             }`}>
-              Preferred Industries
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {['Technology', 'Fintech', 'Healthcare', 'E-commerce'].map((industry) => (
-                <Badge key={industry} variant="success" size="sm">
-                  {industry}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-
-  const renderHiringPreferences = () => (
-    <div className="space-y-6">
-      <Card className={`${
-        theme === 'light' 
-          ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200' 
-          : 'bg-gradient-to-br from-purple-900/20 to-pink-900/20 border-purple-800'
-      }`}>
-        <h3 className={`text-lg font-semibold mb-4 ${
-          theme === 'light' ? 'text-purple-900' : 'text-purple-300'
-        }`}>
-          Hiring Preferences
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <h4 className={`font-medium mb-2 ${
-              theme === 'light' ? 'text-purple-800' : 'text-purple-400'
-            }`}>
-              Preferred Candidate Locations
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {['Bangalore', 'Mumbai', 'Delhi', 'Remote', 'Hybrid'].map((location) => (
-                <Badge key={location} variant="secondary" size="sm">
-                  {location}
-                </Badge>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h4 className={`font-medium mb-2 ${
-              theme === 'light' ? 'text-purple-800' : 'text-purple-400'
-            }`}>
-              Hiring Budget Range
+              Job Type
             </h4>
             <p className={`text-sm ${
-              theme === 'light' ? 'text-purple-700' : 'text-purple-400'
+              theme === 'light' ? 'text-green-700' : 'text-green-300'
             }`}>
-              ₹50,000 - ₹2,00,000 per month
+              {profileData.preferred_job_type || 'Not specified'}
+            </p>
+          </div>
+          <div>
+            <h4 className={`font-medium mb-2 ${
+              theme === 'light' ? 'text-green-800' : 'text-green-400'
+            }`}>
+              Expected Salary
+            </h4>
+            <p className={`text-sm ${
+              theme === 'light' ? 'text-green-700' : 'text-green-300'
+            }`}>
+              {profileData.expected_salary_min && profileData.expected_salary_max 
+                ? `₹${profileData.expected_salary_min.toLocaleString()} - ₹${profileData.expected_salary_max.toLocaleString()}`
+                : 'Not specified'
+              }
+            </p>
+          </div>
+          <div>
+            <h4 className={`font-medium mb-2 ${
+              theme === 'light' ? 'text-green-800' : 'text-green-400'
+            }`}>
+              Experience
+            </h4>
+            <p className={`text-sm ${
+              theme === 'light' ? 'text-green-700' : 'text-green-300'
+            }`}>
+              {profileData.experience_years ? `${profileData.experience_years} years` : 'Not specified'}
             </p>
           </div>
         </div>
@@ -777,10 +558,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
     switch (activeTab) {
       case 'personal': return renderPersonalInfo();
       case 'professional': return renderProfessionalInfo();
-      case 'skills': return renderSkillsPortfolio();
-      case 'company': return renderCompanyInfo();
       case 'preferences': return renderJobPreferences();
-      case 'hiring': return renderHiringPreferences();
       case 'privacy': return renderPrivacySettings();
       default: return renderPersonalInfo();
     }
