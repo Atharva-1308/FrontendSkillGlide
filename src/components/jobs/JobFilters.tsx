@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Filter, X, DollarSign, Clock, Briefcase, Monitor, Users, Languages } from 'lucide-react';
+import { Search, MapPin, Filter, X, DollarSign, Clock, Briefcase, Monitor, Users, Languages, ChevronDown } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { useJobs } from '../../contexts/JobContext';
-import type { JobType, WorkMode, ExperienceLevel } from '../../types';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export const JobFilters: React.FC = () => {
   const { filters, updateFilters, clearFilters } = useJobs();
+  const { theme } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [salaryRange, setSalaryRange] = useState({ min: 0, max: 200000 });
 
-  const jobTypes: { value: JobType; label: string }[] = [
+  const jobTypes = [
     { value: 'full-time', label: 'Full-time' },
     { value: 'part-time', label: 'Part-time' },
     { value: 'internship', label: 'Internship' },
@@ -20,13 +21,13 @@ export const JobFilters: React.FC = () => {
     { value: 'freelance', label: 'Freelance' },
   ];
 
-  const workModes: { value: WorkMode; label: string }[] = [
+  const workModes = [
     { value: 'remote', label: 'Remote' },
     { value: 'onsite', label: 'On-site' },
     { value: 'hybrid', label: 'Hybrid' },
   ];
 
-  const experienceLevels: { value: ExperienceLevel; label: string }[] = [
+  const experienceLevels = [
     { value: 'fresher', label: 'Fresher' },
     { value: '1-2', label: '1-2 years' },
     { value: '3-5', label: '3-5 years' },
@@ -43,27 +44,27 @@ export const JobFilters: React.FC = () => {
     'English', 'Hindi', 'Tamil', 'Telugu', 'Bengali', 'Marathi', 'Gujarati', 'Kannada'
   ];
 
-  const handleJobTypeChange = (type: JobType) => {
+  const handleJobTypeChange = (type: string) => {
     const currentTypes = filters.jobType || [];
-    const newTypes = currentTypes.includes(type)
+    const newTypes = currentTypes.includes(type as any)
       ? currentTypes.filter(t => t !== type)
-      : [...currentTypes, type];
+      : [...currentTypes, type as any];
     updateFilters({ jobType: newTypes });
   };
 
-  const handleWorkModeChange = (mode: WorkMode) => {
+  const handleWorkModeChange = (mode: string) => {
     const currentModes = filters.workMode || [];
-    const newModes = currentModes.includes(mode)
+    const newModes = currentModes.includes(mode as any)
       ? currentModes.filter(m => m !== mode)
-      : [...currentModes, mode];
+      : [...currentModes, mode as any];
     updateFilters({ workMode: newModes });
   };
 
-  const handleExperienceChange = (level: ExperienceLevel) => {
+  const handleExperienceChange = (level: string) => {
     const currentLevels = filters.experience || [];
-    const newLevels = currentLevels.includes(level)
+    const newLevels = currentLevels.includes(level as any)
       ? currentLevels.filter(l => l !== level)
-      : [...currentLevels, level];
+      : [...currentLevels, level as any];
     updateFilters({ experience: newLevels });
   };
 
@@ -91,7 +92,7 @@ export const JobFilters: React.FC = () => {
     <div className="space-y-4">
       {/* Search Bar */}
       <Card padding="sm">
-        <div className="flex space-x-4">
+        <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
           <div className="flex-1">
             <Input
               placeholder="Search jobs, companies, or skills..."
@@ -103,7 +104,7 @@ export const JobFilters: React.FC = () => {
           </div>
           <div className="flex-1">
             <Input
-              placeholder="Location"
+              placeholder="Location (e.g., Bangalore, Remote)"
               value={filters.location || ''}
               onChange={(e) => updateFilters({ location: e.target.value })}
               icon={<MapPin className="w-4 h-4" />}
@@ -114,13 +115,15 @@ export const JobFilters: React.FC = () => {
             variant="outline"
             onClick={() => setIsExpanded(!isExpanded)}
             icon={<Filter className="w-4 h-4" />}
+            className="flex items-center space-x-2"
           >
-            Filters
+            <span>Filters</span>
             {getActiveFiltersCount() > 0 && (
-              <Badge variant="primary" size="sm" className="ml-2">
+              <Badge variant="primary" size="sm">
                 {getActiveFiltersCount()}
               </Badge>
             )}
+            <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
           </Button>
         </div>
       </Card>
@@ -137,11 +140,11 @@ export const JobFilters: React.FC = () => {
               </h3>
               <div className="space-y-2">
                 {jobTypes.map((type) => (
-                  <label key={type.value} className="flex items-center">
+                  <label key={type.value} className="flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      checked={filters.jobType?.includes(type.value) || false}
+                      checked={filters.jobType?.includes(type.value as any) || false}
                       onChange={() => handleJobTypeChange(type.value)}
                     />
                     <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
@@ -160,11 +163,11 @@ export const JobFilters: React.FC = () => {
               </h3>
               <div className="space-y-2">
                 {workModes.map((mode) => (
-                  <label key={mode.value} className="flex items-center">
+                  <label key={mode.value} className="flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      checked={filters.workMode?.includes(mode.value) || false}
+                      checked={filters.workMode?.includes(mode.value as any) || false}
                       onChange={() => handleWorkModeChange(mode.value)}
                     />
                     <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
@@ -183,11 +186,11 @@ export const JobFilters: React.FC = () => {
               </h3>
               <div className="space-y-2">
                 {experienceLevels.map((level) => (
-                  <label key={level.value} className="flex items-center">
+                  <label key={level.value} className="flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      checked={filters.experience?.includes(level.value) || false}
+                      checked={filters.experience?.includes(level.value as any) || false}
                       onChange={() => handleExperienceChange(level.value)}
                     />
                     <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
@@ -206,7 +209,7 @@ export const JobFilters: React.FC = () => {
               </h3>
               <div className="space-y-2">
                 {postedWithinOptions.map((option) => (
-                  <label key={option.value} className="flex items-center">
+                  <label key={option.value} className="flex items-center cursor-pointer">
                     <input
                       type="radio"
                       name="postedWithin"
@@ -233,13 +236,13 @@ export const JobFilters: React.FC = () => {
                   <Input
                     type="number"
                     placeholder="Min"
-                    value={salaryRange.min}
+                    value={salaryRange.min || ''}
                     onChange={(e) => setSalaryRange(prev => ({ ...prev, min: parseInt(e.target.value) || 0 }))}
                   />
                   <Input
                     type="number"
                     placeholder="Max"
-                    value={salaryRange.max}
+                    value={salaryRange.max || ''}
                     onChange={(e) => setSalaryRange(prev => ({ ...prev, max: parseInt(e.target.value) || 0 }))}
                   />
                 </div>
@@ -269,7 +272,7 @@ export const JobFilters: React.FC = () => {
               </h3>
               <div className="space-y-2 max-h-32 overflow-y-auto">
                 {languages.map((language) => (
-                  <label key={language} className="flex items-center">
+                  <label key={language} className="flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -340,7 +343,28 @@ export const JobFilters: React.FC = () => {
               </button>
             </Badge>
           ))}
-          {/* Add more active filter displays as needed */}
+          {filters.workMode?.map((mode) => (
+            <Badge key={mode} variant="success" className="flex items-center">
+              {mode.replace(/\b\w/g, l => l.toUpperCase())}
+              <button
+                onClick={() => handleWorkModeChange(mode)}
+                className="ml-1 hover:bg-white/20 rounded-full p-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          ))}
+          {filters.experience?.map((level) => (
+            <Badge key={level} variant="warning" className="flex items-center">
+              {level} years
+              <button
+                onClick={() => handleExperienceChange(level)}
+                className="ml-1 hover:bg-white/20 rounded-full p-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          ))}
         </div>
       )}
     </div>

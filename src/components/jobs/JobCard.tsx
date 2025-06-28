@@ -1,14 +1,15 @@
 import React from 'react';
-import { MapPin, Clock, Users, DollarSign, Bookmark, ExternalLink, Star, TrendingUp } from 'lucide-react';
+import { MapPin, Clock, Users, DollarSign, Bookmark, ExternalLink, Star, TrendingUp, Building } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import type { Job } from '../../types';
+import { useTheme } from '../../contexts/ThemeContext';
+import type { JobResponse } from '../../services/jobService';
 
 interface JobCardProps {
-  job: Job;
-  onApply?: (jobId: string) => void;
-  onSave?: (jobId: string) => void;
+  job: JobResponse;
+  onApply?: (jobId: number) => void;
+  onSave?: (jobId: number) => void;
   isSaved?: boolean;
 }
 
@@ -18,8 +19,11 @@ export const JobCard: React.FC<JobCardProps> = ({
   onSave,
   isSaved = false,
 }) => {
-  const formatSalary = (salary: Job['salary']) => {
-    const { min, max, currency, period } = salary;
+  const { theme } = useTheme();
+
+  const formatSalary = (salaryMin?: number, salaryMax?: number, currency = 'INR', period = 'month') => {
+    if (!salaryMin && !salaryMax) return 'Salary not disclosed';
+    
     const format = (amount: number) => {
       if (amount >= 100000) {
         return `${(amount / 100000).toFixed(1)}L`;
@@ -27,46 +31,68 @@ export const JobCard: React.FC<JobCardProps> = ({
       return amount.toLocaleString();
     };
     
-    return `${currency === 'INR' ? '₹' : '$'}${format(min)} - ${format(max)}/${period}`;
+    const currencySymbol = currency === 'INR' ? '₹' : '$';
+    const periodText = period === 'month' ? '/month' : `/${period}`;
+    
+    if (salaryMin && salaryMax) {
+      return `${currencySymbol}${format(salaryMin)} - ${format(salaryMax)}${periodText}`;
+    } else if (salaryMin) {
+      return `${currencySymbol}${format(salaryMin)}+ ${periodText}`;
+    } else if (salaryMax) {
+      return `Up to ${currencySymbol}${format(salaryMax)}${periodText}`;
+    }
+    
+    return 'Salary not disclosed';
   };
 
-  const getTimeAgo = (date: Date) => {
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
     
     if (diffInDays === 0) return 'Today';
     if (diffInDays === 1) return 'Yesterday';
-    return `${diffInDays} days ago`;
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+    return `${Math.floor(diffInDays / 30)} months ago`;
   };
 
-  const getWorkModeColor = (mode: Job['workMode']) => {
-    switch (mode) {
+  const getWorkModeColor = (mode: string) => {
+    switch (mode.toLowerCase()) {
       case 'remote': return 'success';
       case 'hybrid': return 'primary';
       case 'onsite': return 'secondary';
-      default: return 'default';
+      default: return 'outline';
     }
   };
 
-  const getJobTypeColor = (type: Job['type']) => {
-    switch (type) {
+  const getJobTypeColor = (type: string) => {
+    switch (type.toLowerCase()) {
       case 'full-time': return 'primary';
       case 'part-time': return 'secondary';
       case 'internship': return 'warning';
       case 'contract': return 'outline';
       case 'freelance': return 'success';
-      default: return 'default';
+      default: return 'outline';
     }
   };
 
   const isNewJob = () => {
-    const daysSincePosted = Math.floor((new Date().getTime() - job.postedAt.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSincePosted = Math.floor((new Date().getTime() - new Date(job.created_at).getTime()) / (1000 * 60 * 60 * 24));
     return daysSincePosted <= 1;
   };
 
   const isTrending = () => {
-    return job.applicationsCount > 20;
+    return job.applications_count > 20;
+  };
+
+  const formatJobType = (type: string) => {
+    return type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const formatWorkMode = (mode: string) => {
+    return mode.replace(/\b\w/g, l => l.toUpperCase());
   };
 
   return (
@@ -90,26 +116,16 @@ export const JobCard: React.FC<JobCardProps> = ({
       {/* Header */}
       <div className="flex justify-between items-start mb-6 pt-2">
         <div className="flex items-start space-x-4 flex-1">
-          {job.companyLogo ? (
-            <img
-              src={job.companyLogo}
-              alt={`${job.company} logo`}
-              className="w-14 h-14 rounded-xl object-cover shadow-md"
-            />
-          ) : (
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-lg">
-                {job.company.charAt(0)}
-              </span>
-            </div>
-          )}
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
+            <Building className="w-6 h-6 text-white" />
+          </div>
           
           <div className="flex-1 min-w-0">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors mb-1">
               {job.title}
             </h3>
             <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">
-              {job.company}
+              Company Name
             </p>
           </div>
         </div>
@@ -136,28 +152,33 @@ export const JobCard: React.FC<JobCardProps> = ({
         
         <div className="flex items-center text-gray-600 dark:text-gray-400">
           <DollarSign className="w-4 h-4 mr-2 text-green-500" />
-          <span className="text-sm font-medium">{formatSalary(job.salary)}</span>
+          <span className="text-sm font-medium">{formatSalary(job.salary_min, job.salary_max, job.salary_currency, job.salary_period)}</span>
         </div>
         
         <div className="flex items-center text-gray-600 dark:text-gray-400">
           <Users className="w-4 h-4 mr-2 text-purple-500" />
-          <span className="text-sm font-medium">{job.experience} years exp</span>
+          <span className="text-sm font-medium">{job.experience_level} experience</span>
         </div>
         
         <div className="flex items-center text-gray-600 dark:text-gray-400">
           <Clock className="w-4 h-4 mr-2 text-orange-500" />
-          <span className="text-sm font-medium">{getTimeAgo(job.postedAt)}</span>
+          <span className="text-sm font-medium">{getTimeAgo(job.created_at)}</span>
         </div>
       </div>
 
       {/* Badges */}
       <div className="flex flex-wrap gap-2 mb-6">
-        <Badge variant={getJobTypeColor(job.type)} size="sm" gradient>
-          {job.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+        <Badge variant={getJobTypeColor(job.job_type)} size="sm" gradient>
+          {formatJobType(job.job_type)}
         </Badge>
-        <Badge variant={getWorkModeColor(job.workMode)} size="sm" gradient>
-          {job.workMode.replace(/\b\w/g, l => l.toUpperCase())}
+        <Badge variant={getWorkModeColor(job.work_mode)} size="sm" gradient>
+          {formatWorkMode(job.work_mode)}
         </Badge>
+        {job.is_featured && (
+          <Badge variant="warning" size="sm" gradient>
+            Featured
+          </Badge>
+        )}
       </div>
 
       {/* Skills */}
@@ -185,7 +206,7 @@ export const JobCard: React.FC<JobCardProps> = ({
       <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
         <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
           <Users className="w-4 h-4 mr-1" />
-          <span className="font-medium">{job.applicationsCount} applicants</span>
+          <span className="font-medium">{job.applications_count} applicants</span>
         </div>
         
         <div className="flex space-x-3">
