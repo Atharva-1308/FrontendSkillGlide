@@ -48,6 +48,7 @@ interface ProfileData {
   // Additional
   profilePicture?: string;
   resume?: File;
+  password: string;
 }
 
 const jobSeekerSteps = [
@@ -78,6 +79,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
     skills: [],
     jobType: [],
     workMode: [],
+    password: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,6 +113,8 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           else if (!/\S+@\S+\.\S+/.test(profileData.email)) newErrors.email = 'Please enter a valid email';
           if (!profileData.phone.trim()) newErrors.phone = 'Phone number is required';
           if (!profileData.location.trim()) newErrors.location = 'Location is required';
+          if (!profileData.password.trim()) newErrors.password = 'Password is required';
+          else if (profileData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
           break;
         
         case 'professional':
@@ -193,6 +197,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
       await register({
         name: `${profileData.firstName} ${profileData.lastName}`,
         email: profileData.email,
+        password: profileData.password,
         role: profileData.userType,
         phone: profileData.phone,
         location: profileData.location,
@@ -372,6 +377,17 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           onChange={(e) => updateProfileData('location', e.target.value)}
           error={errors.location}
           icon={<MapPin className="w-4 h-4" />}
+          fullWidth
+          required
+        />
+
+        <Input
+          label="Password"
+          type="password"
+          placeholder="••••••••"
+          value={profileData.password}
+          onChange={(e) => updateProfileData('password', e.target.value)}
+          error={errors.password}
           fullWidth
           required
         />
@@ -967,8 +983,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
                     <div className={`w-16 h-1 mx-2 ${
                       isComplete 
                         ? 'bg-green-500' 
-                        : theme === 'light' ? '
-                        bg-gray-200' : \'bg-gray-700'
+                        : theme === 'light' ? 'bg-gray-200' : 'bg-gray-700'
                     }`} />
                   )}
                 </div>
