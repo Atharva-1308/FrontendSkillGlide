@@ -80,7 +80,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
     workMode: [],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { register } = useAuth();
   const { theme } = useTheme();
 
@@ -98,54 +98,61 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
     const newErrors: Record<string, string> = {};
     const currentStepId = steps[step].id;
 
-    switch (currentStepId) {
-      case 'role':
-        if (!profileData.userType) newErrors.userType = 'Please select your role';
-        break;
+    try {
+      switch (currentStepId) {
+        case 'role':
+          if (!profileData.userType) newErrors.userType = 'Please select your role';
+          break;
+          
+        case 'personal':
+          if (!profileData.firstName.trim()) newErrors.firstName = 'First name is required';
+          if (!profileData.lastName.trim()) newErrors.lastName = 'Last name is required';
+          if (!profileData.email.trim()) newErrors.email = 'Email is required';
+          else if (!/\S+@\S+\.\S+/.test(profileData.email)) newErrors.email = 'Please enter a valid email';
+          if (!profileData.phone.trim()) newErrors.phone = 'Phone number is required';
+          if (!profileData.location.trim()) newErrors.location = 'Location is required';
+          break;
         
-      case 'personal':
-        if (!profileData.firstName.trim()) newErrors.firstName = 'First name is required';
-        if (!profileData.lastName.trim()) newErrors.lastName = 'Last name is required';
-        if (!profileData.email.trim()) newErrors.email = 'Email is required';
-        if (!profileData.phone.trim()) newErrors.phone = 'Phone number is required';
-        if (!profileData.location.trim()) newErrors.location = 'Location is required';
-        break;
-      
-      case 'professional':
-        if (profileData.userType === 'jobseeker') {
-          if (!profileData.currentRole?.trim()) newErrors.currentRole = 'Current role is required';
-          if (!profileData.experience) newErrors.experience = 'Experience level is required';
-          if (!profileData.industry?.trim()) newErrors.industry = 'Industry is required';
-          if (!profileData.skills || profileData.skills.length === 0) newErrors.skills = 'At least one skill is required';
-        }
-        break;
+        case 'professional':
+          if (profileData.userType === 'jobseeker') {
+            if (!profileData.currentRole?.trim()) newErrors.currentRole = 'Current role is required';
+            if (!profileData.experience) newErrors.experience = 'Experience level is required';
+            if (!profileData.industry?.trim()) newErrors.industry = 'Industry is required';
+            if (!profileData.skills || profileData.skills.length === 0) newErrors.skills = 'At least one skill is required';
+          }
+          break;
+          
+        case 'company':
+          if (profileData.userType === 'employer') {
+            if (!profileData.companyName?.trim()) newErrors.companyName = 'Company name is required';
+            if (!profileData.companyIndustry?.trim()) newErrors.companyIndustry = 'Company industry is required';
+            if (!profileData.companySize) newErrors.companySize = 'Company size is required';
+            if (!profileData.companyDescription?.trim()) newErrors.companyDescription = 'Company description is required';
+          }
+          break;
+          
+        case 'hiring':
+          if (profileData.userType === 'employer') {
+            if (!profileData.jobsToPost) newErrors.jobsToPost = 'Please specify how many jobs you plan to post';
+            if (!profileData.hiringBudget) newErrors.hiringBudget = 'Please specify your hiring budget';
+          }
+          break;
         
-      case 'company':
-        if (profileData.userType === 'employer') {
-          if (!profileData.companyName?.trim()) newErrors.companyName = 'Company name is required';
-          if (!profileData.companyIndustry?.trim()) newErrors.companyIndustry = 'Company industry is required';
-          if (!profileData.companySize) newErrors.companySize = 'Company size is required';
-          if (!profileData.companyDescription?.trim()) newErrors.companyDescription = 'Company description is required';
-        }
-        break;
-        
-      case 'hiring':
-        if (profileData.userType === 'employer') {
-          if (!profileData.jobsToPost) newErrors.jobsToPost = 'Please specify how many jobs you plan to post';
-          if (!profileData.hiringBudget) newErrors.hiringBudget = 'Please specify your hiring budget';
-        }
-        break;
-      
-      case 'preferences':
-        if (profileData.userType === 'jobseeker') {
-          if (!profileData.jobType || profileData.jobType.length === 0) newErrors.jobType = 'Select at least one job type';
-          if (!profileData.workMode || profileData.workMode.length === 0) newErrors.workMode = 'Select at least one work mode';
-        }
-        break;
-    }
+        case 'preferences':
+          if (profileData.userType === 'jobseeker') {
+            if (!profileData.jobType || profileData.jobType.length === 0) newErrors.jobType = 'Select at least one job type';
+            if (!profileData.workMode || profileData.workMode.length === 0) newErrors.workMode = 'Select at least one work mode';
+          }
+          break;
+      }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    } catch (error) {
+      console.error('Validation error:', error);
+      setErrors({ general: 'Validation failed. Please check your inputs.' });
+      return false;
+    }
   };
 
   const nextStep = () => {
@@ -181,7 +188,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
   const handleSubmit = async () => {
     if (!validateStep(currentStep)) return;
 
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
       await register({
         name: `${profileData.firstName} ${profileData.lastName}`,
@@ -193,9 +200,10 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
       });
       onComplete();
     } catch (error) {
+      console.error('Registration error:', error);
       setErrors({ general: 'Failed to create profile. Please try again.' });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -319,6 +327,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           error={errors.firstName}
           icon={<User className="w-4 h-4" />}
           fullWidth
+          required
         />
         
         <Input
@@ -329,6 +338,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           error={errors.lastName}
           icon={<User className="w-4 h-4" />}
           fullWidth
+          required
         />
         
         <Input
@@ -340,6 +350,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           error={errors.email}
           icon={<Mail className="w-4 h-4" />}
           fullWidth
+          required
         />
         
         <Input
@@ -351,6 +362,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           error={errors.phone}
           icon={<Phone className="w-4 h-4" />}
           fullWidth
+          required
         />
         
         <Input
@@ -361,6 +373,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           error={errors.location}
           icon={<MapPin className="w-4 h-4" />}
           fullWidth
+          required
         />
 
         {profileData.userType === 'jobseeker' && (
@@ -395,20 +408,21 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
             error={errors.currentRole}
             icon={<Briefcase className="w-4 h-4" />}
             fullWidth
+            required
           />
           
           <div>
             <label className={`block text-sm font-medium mb-2 ${
               theme === 'light' ? 'text-gray-700' : 'text-gray-300'
             }`}>
-              Experience Level
+              Experience Level <span className="text-red-500">*</span>
             </label>
             <select
               className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent ${
                 theme === 'light'
                   ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                   : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-              }`}
+              } ${errors.experience ? 'border-red-500' : ''}`}
               value={profileData.experience || ''}
               onChange={(e) => updateProfileData('experience', e.target.value)}
             >
@@ -429,6 +443,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
             error={errors.industry}
             icon={<GraduationCap className="w-4 h-4" />}
             fullWidth
+            required
           />
         </div>
 
@@ -436,7 +451,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           <label className={`block text-sm font-medium mb-3 ${
             theme === 'light' ? 'text-gray-700' : 'text-gray-300'
           }`}>
-            Skills & Technologies
+            Skills & Technologies <span className="text-red-500">*</span>
           </label>
           
           {/* Selected Skills */}
@@ -518,6 +533,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           error={errors.companyName}
           icon={<Building className="w-4 h-4" />}
           fullWidth
+          required
         />
         
         <Input
@@ -533,14 +549,14 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'light' ? 'text-gray-700' : 'text-gray-300'
           }`}>
-            Company Size
+            Company Size <span className="text-red-500">*</span>
           </label>
           <select
             className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent ${
               theme === 'light'
                 ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-            }`}
+            } ${errors.companySize ? 'border-red-500' : ''}`}
             value={profileData.companySize || ''}
             onChange={(e) => updateProfileData('companySize', e.target.value)}
           >
@@ -563,6 +579,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           error={errors.companyIndustry}
           icon={<Award className="w-4 h-4" />}
           fullWidth
+          required
         />
         
         <Input
@@ -578,14 +595,14 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
         <label className={`block text-sm font-medium mb-2 ${
           theme === 'light' ? 'text-gray-700' : 'text-gray-300'
         }`}>
-          Company Description
+          Company Description <span className="text-red-500">*</span>
         </label>
         <textarea
           className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
             theme === 'light'
               ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
               : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-          }`}
+          } ${errors.companyDescription ? 'border-red-500' : ''}`}
           rows={4}
           placeholder="Tell us about your company, its mission, and what makes it special..."
           value={profileData.companyDescription || ''}
@@ -603,14 +620,14 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'light' ? 'text-gray-700' : 'text-gray-300'
           }`}>
-            How many jobs do you plan to post?
+            How many jobs do you plan to post? <span className="text-red-500">*</span>
           </label>
           <select
             className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent ${
               theme === 'light'
                 ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-            }`}
+            } ${errors.jobsToPost ? 'border-red-500' : ''}`}
             value={profileData.jobsToPost || ''}
             onChange={(e) => updateProfileData('jobsToPost', e.target.value)}
           >
@@ -628,14 +645,14 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'light' ? 'text-gray-700' : 'text-gray-300'
           }`}>
-            Monthly Hiring Budget
+            Monthly Hiring Budget <span className="text-red-500">*</span>
           </label>
           <select
             className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:border-transparent ${
               theme === 'light'
                 ? 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 : 'border-gray-600 bg-gray-800 text-white focus:ring-cyan-500'
-            }`}
+            } ${errors.hiringBudget ? 'border-red-500' : ''}`}
             value={profileData.hiringBudget || ''}
             onChange={(e) => updateProfileData('hiringBudget', e.target.value)}
           >
@@ -695,7 +712,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           <label className={`block text-sm font-medium mb-3 ${
             theme === 'light' ? 'text-gray-700' : 'text-gray-300'
           }`}>
-            Preferred Job Types
+            Preferred Job Types <span className="text-red-500">*</span>
           </label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {jobTypes.map((type) => (
@@ -723,7 +740,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
           <label className={`block text-sm font-medium mb-3 ${
             theme === 'light' ? 'text-gray-700' : 'text-gray-300'
           }`}>
-            Preferred Work Mode
+            Preferred Work Mode <span className="text-red-500">*</span>
           </label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {workModes.map((mode) => (
@@ -872,15 +889,24 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
   const renderStepContent = () => {
     const currentStepId = steps[currentStep].id;
     
-    switch (currentStepId) {
-      case 'role': return renderRoleSelection();
-      case 'personal': return renderPersonalInfo();
-      case 'professional': return renderJobSeekerProfessional();
-      case 'company': return renderCompanyInfo();
-      case 'hiring': return renderHiringDetails();
-      case 'preferences': return renderJobSeekerPreferences();
-      case 'complete': return renderComplete();
-      default: return null;
+    try {
+      switch (currentStepId) {
+        case 'role': return renderRoleSelection();
+        case 'personal': return renderPersonalInfo();
+        case 'professional': return renderJobSeekerProfessional();
+        case 'company': return renderCompanyInfo();
+        case 'hiring': return renderHiringDetails();
+        case 'preferences': return renderJobSeekerPreferences();
+        case 'complete': return renderComplete();
+        default: return renderRoleSelection();
+      }
+    } catch (error) {
+      console.error('Error rendering step content:', error);
+      return (
+        <div className="text-center py-8">
+          <p className="text-red-600">Error loading step content. Please try again.</p>
+        </div>
+      );
     }
   };
 
@@ -941,7 +967,8 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
                     <div className={`w-16 h-1 mx-2 ${
                       isComplete 
                         ? 'bg-green-500' 
-                        : theme === 'light' ? 'bg-gray-200' : 'bg-gray-700'
+                        : theme === 'light' ? '
+                        bg-gray-200' : 'bg-gray-700'
                     }`} />
                   )}
                 </div>
@@ -976,31 +1003,34 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
             <Button
               variant="outline"
               onClick={currentStep === 0 ? onBack : prevStep}
+              disabled={isSubmitting}
               icon={<ArrowLeft className="w-4 h-4" />}
             >
               {currentStep === 0 ? 'Back to Home' : 'Previous'}
             </Button>
 
             <div className="flex space-x-3">
-              {currentStep < steps.length - 1 ? (
-                <Button
-                  variant="primary"
-                  onClick={nextStep}
-                  icon={<ArrowRight className="w-4 h-4" />}
-                  iconPosition="right"
-                >
-                  Continue
-                </Button>
-              ) : (
+              {currentStep === steps.length - 1 ? (
                 <Button
                   variant="primary"
                   onClick={handleSubmit}
-                  loading={isLoading}
+                  loading={isSubmitting}
                   icon={<CheckCircle className="w-4 h-4" />}
                   iconPosition="right"
                   className="shadow-lg"
+                  disabled={isSubmitting}
                 >
                   Create Account
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  onClick={nextStep}
+                  icon={<ArrowRight className="w-4 h-4" />}
+                  iconPosition="right"
+                  disabled={isSubmitting}
+                >
+                  Continue
                 </Button>
               )}
             </div>

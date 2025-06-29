@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface UseApiState<T> {
   data: T | null;
@@ -24,7 +24,7 @@ export function useApi<T = any>(
     error: null,
   });
 
-  const execute = async (...args: any[]) => {
+  const execute = useCallback(async (...args: any[]) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
@@ -38,13 +38,34 @@ export function useApi<T = any>(
       onError?.(errorMessage);
       throw error;
     }
-  };
+  }, [apiFunction, onSuccess, onError]);
 
   useEffect(() => {
+    let isMounted = true;
+    
     if (immediate) {
-      execute();
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      
+      apiFunction()
+        .then(result => {
+          if (isMounted) {
+            setState({ data: result, loading: false, error: null });
+            onSuccess?.(result);
+          }
+        })
+        .catch(error => {
+          if (isMounted) {
+            const errorMessage = error.response?.data?.detail || error.message || 'An error occurred';
+            setState(prev => ({ ...prev, loading: false, error: errorMessage }));
+            onError?.(errorMessage);
+          }
+        });
     }
-  }, [immediate]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [immediate, apiFunction, onSuccess, onError]);
 
   return {
     ...state,
@@ -65,7 +86,7 @@ export function useMutation<T = any, P = any>(
     error: null,
   });
 
-  const mutate = async (params: P) => {
+  const mutate = useCallback(async (params: P) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
@@ -79,11 +100,11 @@ export function useMutation<T = any, P = any>(
       onError?.(errorMessage);
       throw error;
     }
-  };
+  }, [apiFunction, onSuccess, onError]);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setState({ data: null, loading: false, error: null });
-  };
+  }, []);
 
   return {
     ...state,

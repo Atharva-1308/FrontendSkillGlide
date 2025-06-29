@@ -46,16 +46,21 @@ export const JobCard: React.FC<JobCardProps> = ({
   };
 
   const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    return `${Math.floor(diffInDays / 30)} months ago`;
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInMs = now.getTime() - date.getTime();
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+      
+      if (diffInDays === 0) return 'Today';
+      if (diffInDays === 1) return 'Yesterday';
+      if (diffInDays < 7) return `${diffInDays} days ago`;
+      if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+      return `${Math.floor(diffInDays / 30)} months ago`;
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Recently';
+    }
   };
 
   const getWorkModeColor = (mode: string) => {
@@ -79,12 +84,16 @@ export const JobCard: React.FC<JobCardProps> = ({
   };
 
   const isNewJob = () => {
-    const daysSincePosted = Math.floor((new Date().getTime() - new Date(job.created_at).getTime()) / (1000 * 60 * 60 * 24));
-    return daysSincePosted <= 1;
+    try {
+      const daysSincePosted = Math.floor((new Date().getTime() - new Date(job.created_at).getTime()) / (1000 * 60 * 60 * 24));
+      return daysSincePosted <= 1;
+    } catch (error) {
+      return false;
+    }
   };
 
   const isTrending = () => {
-    return job.applications_count > 20;
+    return (job.applications_count || 0) > 20;
   };
 
   const formatJobType = (type: string) => {
@@ -93,6 +102,22 @@ export const JobCard: React.FC<JobCardProps> = ({
 
   const formatWorkMode = (mode: string) => {
     return mode.replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const handleApply = () => {
+    try {
+      onApply?.(job.id);
+    } catch (error) {
+      console.error('Error applying to job:', error);
+    }
+  };
+
+  const handleSave = () => {
+    try {
+      onSave?.(job.id);
+    } catch (error) {
+      console.error('Error saving job:', error);
+    }
   };
 
   return (
@@ -122,7 +147,7 @@ export const JobCard: React.FC<JobCardProps> = ({
           
           <div className="flex-1 min-w-0">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors mb-1">
-              {job.title}
+              {job.title || 'Job Title'}
             </h3>
             <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">
               Company Name
@@ -133,7 +158,7 @@ export const JobCard: React.FC<JobCardProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onSave?.(job.id)}
+          onClick={handleSave}
           className={`transition-all duration-200 ${isSaved ? 'text-blue-600 dark:text-cyan-400' : 'text-gray-400'}`}
           icon={
             <Bookmark
@@ -147,7 +172,7 @@ export const JobCard: React.FC<JobCardProps> = ({
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="flex items-center text-gray-600 dark:text-gray-400">
           <MapPin className="w-4 h-4 mr-2 text-blue-500" />
-          <span className="text-sm font-medium">{job.location}</span>
+          <span className="text-sm font-medium">{job.location || 'Location not specified'}</span>
         </div>
         
         <div className="flex items-center text-gray-600 dark:text-gray-400">
@@ -157,7 +182,7 @@ export const JobCard: React.FC<JobCardProps> = ({
         
         <div className="flex items-center text-gray-600 dark:text-gray-400">
           <Users className="w-4 h-4 mr-2 text-purple-500" />
-          <span className="text-sm font-medium">{job.experience_level} experience</span>
+          <span className="text-sm font-medium">{job.experience_level || 'Any'} experience</span>
         </div>
         
         <div className="flex items-center text-gray-600 dark:text-gray-400">
@@ -184,14 +209,14 @@ export const JobCard: React.FC<JobCardProps> = ({
       {/* Skills */}
       <div className="mb-6">
         <div className="flex flex-wrap gap-2">
-          {job.skills.slice(0, 4).map((skill, index) => (
+          {(job.skills || []).slice(0, 4).map((skill, index) => (
             <Badge key={index} variant="outline" size="sm" className="hover:bg-blue-50 dark:hover:bg-blue-900/20">
               {skill}
             </Badge>
           ))}
-          {job.skills.length > 4 && (
+          {(job.skills || []).length > 4 && (
             <Badge variant="outline" size="sm" className="hover:bg-gray-50 dark:hover:bg-gray-800">
-              +{job.skills.length - 4} more
+              +{(job.skills || []).length - 4} more
             </Badge>
           )}
         </div>
@@ -199,14 +224,14 @@ export const JobCard: React.FC<JobCardProps> = ({
 
       {/* Description Preview */}
       <p className="text-gray-600 dark:text-gray-400 mb-6 line-clamp-2 leading-relaxed">
-        {job.description}
+        {job.description || 'No description available'}
       </p>
 
       {/* Actions */}
       <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
         <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
           <Users className="w-4 h-4 mr-1" />
-          <span className="font-medium">{job.applications_count} applicants</span>
+          <span className="font-medium">{job.applications_count || 0} applicants</span>
         </div>
         
         <div className="flex space-x-3">
@@ -221,7 +246,7 @@ export const JobCard: React.FC<JobCardProps> = ({
           <Button
             variant="primary"
             size="sm"
-            onClick={() => onApply?.(job.id)}
+            onClick={handleApply}
             className="hover:scale-105 shadow-lg"
           >
             Apply Now

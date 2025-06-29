@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, X, Check, CheckCheck, Trash2, Settings, Briefcase, Users, Star, MessageCircle, Calendar, TrendingUp, Filter, Search, MoreVertical } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -30,6 +30,17 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
       onError: () => setNotifications([]),
     }
   );
+
+  // Refresh unread count when notifications are updated
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const refreshInterval = setInterval(() => {
+      refetch();
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [isOpen, refetch]);
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -73,18 +84,23 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
   };
 
   const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    try {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInMs = now.getTime() - date.getTime();
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInDays < 7) return `${diffInDays}d ago`;
-    return date.toLocaleDateString();
+      if (diffInMinutes < 1) return 'Just now';
+      if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+      if (diffInHours < 24) return `${diffInHours}h ago`;
+      if (diffInDays < 7) return `${diffInDays}d ago`;
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.error('Error formatting timestamp:', error);
+      return 'Unknown date';
+    }
   };
 
   const markAsRead = async (id: number) => {
@@ -121,13 +137,15 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
   };
 
   const filteredNotifications = notifications.filter(notification => {
+    // Filter by type
     const matchesFilter = 
       filter === 'all' || 
       (filter === 'unread' && !notification.is_read) ||
       (filter === 'important' && notification.is_important);
     
+    // Filter by search query
     const matchesSearch = 
-      searchQuery === '' ||
+      !searchQuery || searchQuery === '' ||
       notification.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       notification.message.toLowerCase().includes(searchQuery.toLowerCase());
 

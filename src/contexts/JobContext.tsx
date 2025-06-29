@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { jobService, type JobResponse } from '../services/jobService';
 import { useApi } from '../hooks/useApi';
 import type { JobFilters } from '../types';
@@ -53,88 +53,113 @@ export const JobProvider: React.FC<JobProviderProps> = ({ children }) => {
       return;
     }
 
-    let filtered = [...jobs];
+    try {
+      let filtered = [...jobs];
 
-    // Apply search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(job =>
-        job.title.toLowerCase().includes(searchLower) ||
-        job.description.toLowerCase().includes(searchLower) ||
-        job.location.toLowerCase().includes(searchLower) ||
-        (job.skills && job.skills.some(skill => skill.toLowerCase().includes(searchLower)))
-      );
-    }
-
-    // Apply location filter
-    if (filters.location) {
-      filtered = filtered.filter(job =>
-        job.location.toLowerCase().includes(filters.location!.toLowerCase())
-      );
-    }
-
-    // Apply job type filter
-    if (filters.jobType && filters.jobType.length > 0) {
-      filtered = filtered.filter(job => filters.jobType!.includes(job.job_type as any));
-    }
-
-    // Apply work mode filter
-    if (filters.workMode && filters.workMode.length > 0) {
-      filtered = filtered.filter(job => filters.workMode!.includes(job.work_mode as any));
-    }
-
-    // Apply experience filter
-    if (filters.experience && filters.experience.length > 0) {
-      filtered = filtered.filter(job => filters.experience!.includes(job.experience_level as any));
-    }
-
-    // Apply salary filter
-    if (filters.salaryRange) {
-      filtered = filtered.filter(job => {
-        if (!job.salary_min || !job.salary_max) return true;
-        return (
-          job.salary_min >= (filters.salaryRange!.min || 0) &&
-          job.salary_max <= (filters.salaryRange!.max || Infinity)
+      // Apply search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        filtered = filtered.filter(job =>
+          job.title.toLowerCase().includes(searchLower) ||
+          job.description.toLowerCase().includes(searchLower) ||
+          job.location.toLowerCase().includes(searchLower) ||
+          (job.skills && job.skills.some(skill => skill.toLowerCase().includes(searchLower)))
         );
-      });
-    }
+      }
 
-    // Apply posted within filter
-    if (filters.postedWithin) {
-      const cutoffDate = new Date(Date.now() - filters.postedWithin * 24 * 60 * 60 * 1000);
-      filtered = filtered.filter(job => new Date(job.created_at) >= cutoffDate);
-    }
+      // Apply location filter
+      if (filters.location) {
+        filtered = filtered.filter(job =>
+          job.location.toLowerCase().includes(filters.location!.toLowerCase())
+        );
+      }
 
-    // Apply skills filter
-    if (filters.skills && filters.skills.length > 0) {
-      filtered = filtered.filter(job =>
-        filters.skills!.some(skill =>
-          job.skills && job.skills.some(jobSkill => 
-            jobSkill.toLowerCase().includes(skill.toLowerCase())
+      // Apply job type filter
+      if (filters.jobType && filters.jobType.length > 0) {
+        filtered = filtered.filter(job => filters.jobType!.includes(job.job_type as any));
+      }
+
+      // Apply work mode filter
+      if (filters.workMode && filters.workMode.length > 0) {
+        filtered = filtered.filter(job => filters.workMode!.includes(job.work_mode as any));
+      }
+
+      // Apply experience filter
+      if (filters.experience && filters.experience.length > 0) {
+        filtered = filtered.filter(job => filters.experience!.includes(job.experience_level as any));
+      }
+
+      // Apply salary filter
+      if (filters.salaryRange) {
+        filtered = filtered.filter(job => {
+          if (!job.salary_min && !job.salary_max) return true;
+          
+          const minSalary = filters.salaryRange!.min || 0;
+          const maxSalary = filters.salaryRange!.max || Infinity;
+          
+          // Check if job salary range overlaps with filter range
+          if (job.salary_min && job.salary_max) {
+            return job.salary_max >= minSalary && job.salary_min <= maxSalary;
+          } else if (job.salary_min) {
+            return job.salary_min <= maxSalary;
+          } else if (job.salary_max) {
+            return job.salary_max >= minSalary;
+          }
+          
+          return true;
+        });
+      }
+
+      // Apply posted within filter
+      if (filters.postedWithin) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - filters.postedWithin);
+        
+        filtered = filtered.filter(job => {
+          try {
+            const jobDate = new Date(job.created_at);
+            return jobDate >= cutoffDate;
+          } catch (e) {
+            console.error('Invalid date format:', job.created_at);
+            return true; // Include jobs with invalid dates
+          }
+        });
+      }
+
+      // Apply skills filter
+      if (filters.skills && filters.skills.length > 0) {
+        filtered = filtered.filter(job =>
+          filters.skills!.some(skill =>
+            job.skills && job.skills.some(jobSkill => 
+              jobSkill.toLowerCase().includes(skill.toLowerCase())
+            )
           )
-        )
-      );
-    }
+        );
+      }
 
-    setFilteredJobs(filtered);
+      setFilteredJobs(filtered);
+    } catch (error) {
+      console.error('Error applying filters:', error);
+      setFilteredJobs(jobs || []);
+    }
   }, [jobs, filters]);
 
-  const updateFilters = (newFilters: Partial<JobFilters>) => {
+  const updateFilters = useCallback((newFilters: Partial<JobFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
-  };
+  }, []);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setFilters({});
-  };
+  }, []);
 
-  const searchJobs = (query: string) => {
+  const searchJobs = useCallback((query: string) => {
     updateFilters({ search: query });
-  };
+  }, [updateFilters]);
 
   return (
     <JobContext.Provider
       value={{
-        jobs: jobs || [],
+        jobs: Array.isArray(jobs) ? jobs : [],
         filteredJobs,
         filters,
         updateFilters,
@@ -142,7 +167,7 @@ export const JobProvider: React.FC<JobProviderProps> = ({ children }) => {
         searchJobs,
         loading,
         error,
-        totalJobs: jobs?.length || 0,
+        totalJobs: Array.isArray(jobs) ? jobs.length : 0,
         refetchJobs,
       }}
     >

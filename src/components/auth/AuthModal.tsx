@@ -107,13 +107,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         await register({
           name: formData.name,
           email: formData.email,
+          password: formData.password,
           role: userType,
           ...(userType === 'employer' && { company: formData.company }),
         });
       }
       onClose();
-    } catch (error) {
-      setErrors({ general: 'Authentication failed. Please check your credentials and try again.' });
+    } catch (error: any) {
+      console.error('Authentication error:', error);
+      setErrors({ 
+        general: error.message || 'Authentication failed. Please check your credentials and try again.' 
+      });
     } finally {
       setIsSubmitting(false);
     }

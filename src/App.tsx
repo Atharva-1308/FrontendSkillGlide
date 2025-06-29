@@ -29,10 +29,10 @@ const AppContent: React.FC = () => {
 
   // Reset to home page when user logs out
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && currentView !== 'home' && currentView !== 'create-profile') {
       setCurrentView('home');
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, currentView]);
 
   // Redirect to appropriate dashboard after login
   useEffect(() => {
@@ -91,67 +91,89 @@ const AppContent: React.FC = () => {
   }
 
   const renderContent = () => {
-    switch (currentView) {
-      case 'home':
-        return <HomePage onGetStarted={handleGetStarted} onSignIn={handleSignIn} />;
-      case 'create-profile':
-        return (
-          <ProfileCreation 
-            onComplete={handleProfileCreationComplete}
-            onBack={handleProfileCreationBack}
-          />
-        );
-      case 'jobs':
-        return (
-          <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 ${
-            theme === 'light' ? 'bg-light-pattern' : ''
-          }`}>
-            <div className="space-y-8">
-              <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-                  {isEmployer ? 'Find Top Candidates' : 'Discover Your Perfect Job'}
-                </h1>
-                <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                  {isEmployer 
-                    ? 'Browse through talented professionals and find the perfect match for your team'
-                    : 'Browse through thousands of opportunities from top companies worldwide'
-                  }
-                </p>
+    try {
+      switch (currentView) {
+        case 'home':
+          return <HomePage onGetStarted={handleGetStarted} onSignIn={handleSignIn} />;
+        case 'create-profile':
+          return (
+            <ProfileCreation 
+              onComplete={handleProfileCreationComplete}
+              onBack={handleProfileCreationBack}
+            />
+          );
+        case 'jobs':
+          return (
+            <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 ${
+              theme === 'light' ? 'bg-light-pattern' : ''
+            }`}>
+              <div className="space-y-8">
+                <div className="text-center mb-12">
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+                    {isEmployer ? 'Find Top Candidates' : 'Discover Your Perfect Job'}
+                  </h1>
+                  <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    {isEmployer 
+                      ? 'Browse through talented professionals and find the perfect match for your team'
+                      : 'Browse through thousands of opportunities from top companies worldwide'
+                    }
+                  </p>
+                </div>
+                <JobFilters />
+                <JobList />
               </div>
-              <JobFilters />
-              <JobList />
             </div>
-          </div>
-        );
-      case 'resume':
-        return <ResumeBuilder />;
-      case 'dashboard':
-        return <EmployerDashboard onNavigate={setCurrentView} />;
-      case 'post-job':
-        return <JobPostingBuilder onBack={() => setCurrentView('dashboard')} />;
-      case 'candidates':
-        return (
-          <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 ${
-            theme === 'light' ? 'bg-light-pattern' : ''
-          }`}>
-            <div className="space-y-8">
-              <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-                  Find Top Candidates
-                </h1>
-                <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                  Browse through talented professionals and find the perfect match for your team
-                </p>
+          );
+        case 'resume':
+          return <ResumeBuilder />;
+        case 'dashboard':
+          return <EmployerDashboard onNavigate={setCurrentView} />;
+        case 'post-job':
+          return <JobPostingBuilder onBack={() => setCurrentView('dashboard')} />;
+        case 'candidates':
+          return (
+            <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 ${
+              theme === 'light' ? 'bg-light-pattern' : ''
+            }`}>
+              <div className="space-y-8">
+                <div className="text-center mb-12">
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+                    Find Top Candidates
+                  </h1>
+                  <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    Browse through talented professionals and find the perfect match for your team
+                  </p>
+                </div>
+                <JobFilters />
+                <JobList />
               </div>
-              <JobFilters />
-              <JobList />
             </div>
+          );
+        case 'profile':
+          return <ProfilePage onNavigate={setCurrentView} />;
+        default:
+          return <HomePage onGetStarted={handleGetStarted} onSignIn={handleSignIn} />;
+      }
+    } catch (error) {
+      console.error('Error rendering content:', error);
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Something went wrong
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Please refresh the page or try again later.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Refresh Page
+            </button>
           </div>
-        );
-      case 'profile':
-        return <ProfilePage onNavigate={setCurrentView} />;
-      default:
-        return <HomePage onGetStarted={handleGetStarted} onSignIn={handleSignIn} />;
+        </div>
+      );
     }
   };
 

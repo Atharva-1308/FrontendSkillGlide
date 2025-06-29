@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authService, type LoginRequest, type RegisterRequest } from '../services/authService';
 import { userService } from '../services/userService';
 import type { User } from '../types';
@@ -98,12 +98,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-    // Force page reload to clear any cached data
-    window.location.href = '/';
-  };
+  const logout = useCallback(() => {
+    try {
+      authService.logout();
+      setUser(null);
+      // Force page reload to clear any cached data
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  }, []);
 
   const refreshUser = async () => {
     try {
@@ -111,7 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userData);
     } catch (error) {
       console.error('Failed to refresh user data:', error);
-      // If refresh fails, user might need to re-authenticate
+      // If refresh fails, check if we still have stored user data
       const storedUser = authService.getCurrentUser();
       if (!storedUser) {
         logout();
