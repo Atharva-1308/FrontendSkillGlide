@@ -968,7 +968,7 @@ export const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete, on
                       isComplete 
                         ? 'bg-green-500' 
                         : theme === 'light' ? '
-                        bg-gray-200' : 'bg-gray-700'
+                        bg-gray-200' : \'bg-gray-700'
                     }`} />
                   )}
                 </div>
