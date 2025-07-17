@@ -33,7 +33,11 @@ class JobService {
       const response = await api.get<JobResponse[]>('/jobs', filters);
       return Array.isArray(response.data) ? response.data : [];
     } catch (error: any) {
-      console.error('Error fetching jobs:', error);
+      console.error('Error fetching jobs:', error.message || error);
+      // Log more details for debugging
+      if (error.code === 'ERR_NETWORK') {
+        console.error('Network error - check if backend is running on http://127.0.0.1:8000');
+      }
       return []; // Return empty array instead of throwing
     }
   }
